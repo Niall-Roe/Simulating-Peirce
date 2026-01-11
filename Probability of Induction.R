@@ -4,9 +4,7 @@
 # ==================================================
 library(shiny)
 library(ggplot2)
-library(dplyr)
-
-#dont need the save / load functionality here now. 
+library(dplyr) 
 
 
 ui <- fluidPage(
@@ -66,14 +64,10 @@ ui <- fluidPage(
       
       # Quick Actions (visible on all tabs)
       div(style = "margin-bottom: 15px;",
-          actionButton("reset_all", "🔄 Reset to Defaults", 
-                       class = "btn-reset", style = "width: 100%; margin: 5px 0;"),
-          actionButton("save_scenario", "💾 Save Scenario", 
-                       class = "btn-info", style = "width: 100%; margin: 5px 0;"),
-          actionButton("load_scenario", "📂 Load Scenario", 
-                       class = "btn-info", style = "width: 100%; margin: 5px 0;")
+          actionButton("reset_all", "🔄 Reset to Defaults",
+                       class = "btn-reset", style = "width: 100%; margin: 5px 0;")
       ),
-      
+
       hr(),
       
       # OVERVIEW TAB
@@ -101,25 +95,19 @@ ui <- fluidPage(
                            HTML("<b>Induction Mode:</b> We're estimating unknown parameters from data")
                        ),
                        h4("Data Collection"),
-                       sliderInput("n", "Sample Size (n)", 
+                       sliderInput("n", "Sample Size (n)",
                                    min = 5, max = 500, value = 50, step = 5),
-                       actionButton("resample_induction", "📊 Collect New Sample", 
+                       actionButton("resample_induction", "📊 Collect New Sample",
                                     class = "btn-primary", style = "width: 100%; margin: 10px 0;"),
-                       actionButton("randomize_induction", "🎲 Randomize Parameters", 
+                       actionButton("randomize_induction", "🎲 Randomize Parameters",
                                     class = "btn-warning", style = "width: 100%; margin: 5px 0;"),
                        hr(),
                        h4("Inference Settings"),
-                       sliderInput("conf_level", "Confidence Level (%)", 
+                       sliderInput("conf_level", "Confidence Level (%)",
                                    min = 50, max = 99, value = 95, step = 1),
-                       numericInput("n_sim", "Simulation Repetitions:", 
-                                    value = 1000, min = 100, max = 10000, step = 100),
-                       actionButton("run_sim", "▶ Run Repeated Sampling Simulation", 
-                                    class = "btn-info", style = "width: 100%; margin: 10px 0;"),
                        hr(),
                        h4("Download Options"),
-                       downloadButton("download_sample", "Download Sample Data", 
-                                      style = "width: 100%; margin: 5px 0;"),
-                       downloadButton("download_sim", "Download Sim Results", 
+                       downloadButton("download_sample", "Download Sample Data",
                                       style = "width: 100%; margin: 5px 0;")
       ),
       
@@ -206,49 +194,52 @@ ui <- fluidPage(
                   
                   tabPanel("Induction", value = "induction",
                            br(),
-                           div(class = "warning-box",
-                               HTML("<b>INDUCTION MODE:</b> Pretend we don't know μ = ", 
-                                    textOutput("hidden_mu_text", inline = TRUE), 
-                                    ". We must estimate it from noisy data.")
-                           ),
-                           
+                           uiOutput("verdict_box_induction"),
                            fluidRow(
                              column(6,
-                                    h4("Current Sample Statistics"),
-                                    verbatimTextOutput("sample_stats")
+                                    plotOutput("unified_plot_induction", height = "500px")
                              ),
                              column(6,
-                                    h4("What Does the CI Mean?"),
-                                    uiOutput("ci_interpretation_box")
+                                    plotOutput("history_plot_induction", height = "500px")
                              )
                            ),
-                           
+                           wellPanel(
+                             tags$b("The Duality Discovery:"),
+                             "Watch how as each CI is generated (left), it falls into place in the history (right).
+                             The CI tells us about method reliability: if we repeated this procedure many times,
+                             the interval would contain the true value at the specified confidence level."
+                           ),
                            hr(),
-                           h3("Visualizations"),
-                           
-                           fluidRow(
-                             column(6,
-                                    plotOutput("sample_hist", height = "350px")
+                           tabsetPanel(
+                             tabPanel("Coverage Rate",
+                                      br(),
+                                      fluidRow(
+                                        column(8, plotOutput("capture_rate_plot_induction", height = "400px")),
+                                        column(4, uiOutput("stats_summary_induction"))
+                                      ),
+                                      wellPanel(
+                                        tags$b("Long-Run Interpretation:"),
+                                        "This plot shows how the coverage rate converges to the nominal confidence level as we collect more samples."
+                                      )
                              ),
-                             column(6,
-                                    plotOutput("ci_illustration", height = "350px")
+                             tabPanel("Distribution of CI Bounds",
+                                      br(),
+                                      h4("The Distribution of Possible Intervals"),
+                                      p("This plot shows the distribution of possible CI bounds across all simulations."),
+                                      plotOutput("ci_dist_plot_induction", height = "400px"),
+                                      hr(),
+                                      fluidRow(
+                                        column(6,
+                                               h5("Before the Experiment (Random)"),
+                                               p("Before we collect data, the CI boundaries are random variables. We know that (1-α)% of the time, the random interval will trap μ.")
+                                        ),
+                                        column(6,
+                                               h5("After the Experiment (Fixed)"),
+                                               p("Once you calculate the interval, there is no more randomness. μ is either in there or it isn't.
+                                                 We cannot say 'There is a 95% probability μ is in this interval'. Instead, we say: 'This interval came from a method that works 95% of the time'.")
+                                        )
+                                      )
                              )
-                           ),
-                           
-                           hr(),
-                           h3("Testing the Method: Repeated Sampling"),
-                           div(class = "info-box",
-                               "Click 'Run Repeated Sampling Simulation' to see how often our CI method captures the true value."
-                           ),
-                           
-                           uiOutput("simulation_results"),
-                           plotOutput("repeated_ci_plot", height = "400px"),
-                           
-                           hr(),
-                           div(class = "key-concept",
-                               HTML("<b>Remember:</b> The CI tells us about <i>method reliability</i>, not the probability 
-                  that this specific interval contains μ. After we compute one specific interval, 
-                  it either does or doesn't contain μ - there's no probability about it anymore!")
                            )
                   ),
                   
@@ -405,7 +396,6 @@ server <- function(input, output, session) {
     sim_run = FALSE,
     sim_results = NULL,
     verification_data = NULL,
-    saved_scenarios = list(),
     computing = FALSE
   )
   
@@ -468,51 +458,17 @@ server <- function(input, output, session) {
     updateNumericInput(session, "threshold", value = defaults$threshold)
     updateNumericInput(session, "m", value = defaults$m)
     updateNumericInput(session, "k", value = defaults$k)
-    
+
     # Also update deduction tab
     updateSliderInput(session, "ded_mu", value = defaults$mu)
     updateNumericInput(session, "ded_sigma", value = defaults$sigma)
     updateSelectInput(session, "ded_dist", selected = defaults$dist)
-    
+
     rv$sample <- make_sample(defaults$n, defaults$mu, defaults$sigma, defaults$dist)
     rv$sim_run <- FALSE
     rv$verification_data <- NULL
-    
+
     showNotification("All parameters reset to defaults", type = "message")
-  })
-  
-  # Save scenario
-  observeEvent(input$save_scenario, {
-    scenario_name <- paste("Scenario", length(rv$saved_scenarios) + 1)
-    rv$saved_scenarios[[scenario_name]] <- list(
-      mu = rv$mu,
-      sigma = rv$sigma,
-      dist = input$dist,
-      n = input$n,
-      conf_level = input$conf_level,
-      threshold = input$threshold,
-      m = input$m,
-      k = input$k
-    )
-    showNotification(paste("Saved as", scenario_name), type = "message")
-  })
-  
-  # Load scenario (simplified - loads most recent)
-  observeEvent(input$load_scenario, {
-    if (length(rv$saved_scenarios) > 0) {
-      scenario <- rv$saved_scenarios[[length(rv$saved_scenarios)]]
-      updateSliderInput(session, "true_mu", value = scenario$mu)
-      updateNumericInput(session, "noise_sigma", value = scenario$sigma)
-      updateSelectInput(session, "dist", selected = scenario$dist)
-      updateSliderInput(session, "n", value = scenario$n)
-      updateSliderInput(session, "conf_level", value = scenario$conf_level)
-      updateNumericInput(session, "threshold", value = scenario$threshold)
-      updateNumericInput(session, "m", value = scenario$m)
-      updateNumericInput(session, "k", value = scenario$k)
-      showNotification("Scenario loaded", type = "message")
-    } else {
-      showNotification("No saved scenarios available", type = "warning")
-    }
   })
   
   # Resample - unified handler for all resample buttons
@@ -615,230 +571,174 @@ server <- function(input, output, session) {
       theme(plot.title = element_text(hjust = 0.5))
   })
   
-  # INDUCTION TAB
-  output$hidden_mu_text <- renderText({
-    paste(rv$mu)
-  })
-  
-  output$sample_stats <- renderPrint({
+  # INDUCTION TAB - NEW LAYOUT
+  # History data for induction tab
+  history_induction <- reactiveVal(data.frame())
+
+  # Helper to compute current sample statistics
+  current_sample_induction <- reactive({
     req(rv$sample)
     x <- rv$sample
     xbar <- mean(x)
-    s <- sd(x)
     ci_info <- compute_ci(x, input$conf_level, input$dist)
-    
-    cat("Sample Statistics:\n")
-    cat("─────────────────\n")
-    cat(sprintf("Sample size (n): %d\n", length(x)))
-    cat(sprintf("Sample mean (x̄): %.4f\n", xbar))
-    cat(sprintf("Sample SD (s): %.4f\n", s))
-    cat(sprintf("Standard error: %.4f\n", ci_info$se))
-    cat("\n")
-    cat(sprintf("%d%% Confidence Interval:\n", input$conf_level))
-    cat(sprintf("[%.4f, %.4f]\n", ci_info$ci[1], ci_info$ci[2]))
-    cat(sprintf("Width: %.4f\n", ci_info$ci[2] - ci_info$ci[1]))
-    cat(sprintf("Method: %s\n", ci_info$method))
-    cat("\n")
-    cat("True value (hidden): ***\n")
-    cat(sprintf("Does CI contain μ? %s\n", 
-                ifelse(rv$mu >= ci_info$ci[1] & rv$mu <= ci_info$ci[2], "YES ✓", "NO ✗")))
+    captured_true <- (rv$mu >= ci_info$ci[1] & rv$mu <= ci_info$ci[2])
+
+    list(x_bar = xbar, lower = ci_info$ci[1], upper = ci_info$ci[2],
+         captured_true = captured_true, se = ci_info$se)
   })
-  
-  output$ci_interpretation_box <- renderUI({
-    req(rv$sample)
-    ci_info <- compute_ci(rv$sample, input$conf_level, input$dist)
-    ci <- ci_info$ci
-    
-    tagList(
-      div(class = "success-box",
-          h5("✓ CORRECT Interpretation:", style = "margin-top: 0;"),
-          HTML(sprintf("<p>If we repeated our sampling method many times, 
-               approximately <b>%d%%</b> of the resulting CIs would contain the true μ.</p>
-               <p>This is a statement about the <i>method's reliability</i>, not about this specific interval.</p>", 
-                       input$conf_level))
-      ),
-      div(class = "error-box", style = "margin-top: 10px;",
-          h5("✗ INCORRECT Interpretation:", style = "margin-top: 0;"),
-          HTML(sprintf("<p>'There is a %d%% probability that μ is in [%.2f, %.2f].'</p>
-               <p><b>Why wrong?</b> After computing this specific interval, it either contains μ or it doesn't—
-               there's no probability involved! We can't make probability statements about fixed parameters 
-               unless we know them (that would be deduction, not induction).</p>",
-                       input$conf_level, ci[1], ci[2]))
-      )
+
+  # Add current sample to history when resampling
+  observeEvent(input$resample_induction, {
+    s <- current_sample_induction()
+    new_row <- data.frame(
+      x_bar = s$x_bar,
+      lower = s$lower,
+      upper = s$upper,
+      captured_true = s$captured_true,
+      id = if(nrow(history_induction()) == 0) 1 else max(history_induction()$id) + 1
     )
+    history_induction(rbind(history_induction(), new_row))
   })
-  
-  output$sample_hist <- renderPlot({
+
+  # Reset history
+  observeEvent(input$reset_all, {
+    history_induction(data.frame())
+  })
+
+  output$verdict_box_induction <- renderUI({
+    s <- current_sample_induction()
+    color <- if(s$captured_true) "#27ae60" else "#e74c3c"
+    text <- if(s$captured_true) {
+      "✓ CI CAPTURES TRUE VALUE: The interval contains μ"
+    } else {
+      "✗ CI MISSES TRUE VALUE: The interval does not contain μ"
+    }
+    div(style = paste0("background-color:", color, "; color:white; padding:10px; text-align:center; border-radius:5px; margin-bottom:10px; font-weight:bold;"), text)
+  })
+
+  output$unified_plot_induction <- renderPlot({
     req(rv$sample)
-    x <- rv$sample
-    xbar <- mean(x)
-    ci_info <- compute_ci(x, input$conf_level, input$dist)
-    ci <- ci_info$ci
-    
-    df <- data.frame(x = x)
-    
-    ggplot(df, aes(x = x)) +
-      annotate("rect", xmin = ci[1], xmax = ci[2], ymin = 0, ymax = Inf,
-               fill = "#4CAF50", alpha = 0.2) +
-      geom_histogram(bins = 30, fill = "#64B5F6", color = "white", alpha = 0.7) +
-      geom_vline(xintercept = xbar, color = "darkblue", size = 1.5, linetype = "solid") +
-      geom_vline(xintercept = rv$mu, color = "red", size = 1.5, linetype = "dashed", alpha = 0.7) +
-      geom_vline(xintercept = ci[1], color = "#4CAF50", size = 1, linetype = "dotted") +
-      geom_vline(xintercept = ci[2], color = "#4CAF50", size = 1, linetype = "dotted") +
-      annotate("text", x = xbar, y = Inf, label = paste("x̄ =", round(xbar, 2)), 
-               color = "darkblue", fontface = "bold", vjust = 2, hjust = -0.1) +
-      annotate("text", x = rv$mu, y = Inf, label = paste("μ =", rv$mu, "(true)"), 
-               color = "red", fontface = "bold", vjust = 4, hjust = -0.1) +
-      annotate("text", x = mean(ci), y = Inf, 
-               label = sprintf("%d%% CI", input$conf_level),
-               color = "#4CAF50", fontface = "bold", vjust = 6, hjust = 0.5) +
-      labs(title = "Current Sample Distribution with Confidence Interval",
-           subtitle = "Green shaded region = confidence interval",
-           x = "Observed Value", y = "Count") +
+    s <- current_sample_induction()
+    mu_true <- rv$mu
+
+    # Create a distribution centered on the sample mean showing uncertainty
+    x_range <- seq(s$x_bar - 4*s$se, s$x_bar + 4*s$se, length.out = 300)
+    dist_df <- data.frame(x = x_range, y = dnorm(x_range, s$x_bar, s$se))
+
+    # Calculate alpha for confidence level
+    alpha <- (100 - input$conf_level) / 100
+    z_crit <- qnorm(1 - alpha/2)
+
+    # Calculate y position for CI bar (below the x-axis)
+    y_position <- -max(dist_df$y) * 0.15
+
+    ggplot(dist_df, aes(x, y)) +
+      geom_line(size = 1, color = "steelblue") +
+      geom_vline(xintercept = mu_true, linetype = "dashed", size = 1.2, color = "red") +
+      # CI Bar
+      annotate("segment", x = s$lower, xend = s$upper, y = y_position, yend = y_position,
+               color = ifelse(s$captured_true, "#27ae60", "#e74c3c"), size = 3) +
+      geom_point(aes(x = s$x_bar, y = y_position), color = "blue", size = 4) +
+      annotate("text", x = mu_true, y = max(dist_df$y) * 0.9,
+               label = paste("True μ =", round(mu_true, 2)),
+               color = "red", fontface = "bold", hjust = -0.1) +
+      coord_cartesian(ylim = c(y_position * 1.5, max(dist_df$y)*1.1)) +
+      labs(title = paste0("Current Sample CI (", input$conf_level, "% confidence)"),
+           subtitle = "Watch the CI as it prepares to fall into the history on the right",
+           x = "Value Scale", y = "Density") +
       theme_minimal(base_size = 14) +
       theme(plot.title = element_text(hjust = 0.5),
             plot.subtitle = element_text(hjust = 0.5))
   })
-  
-  output$ci_illustration <- renderPlot({
-    req(rv$sample)
-    x <- rv$sample
-    xbar <- mean(x)
-    ci_info <- compute_ci(x, input$conf_level, input$dist)
-    ci <- ci_info$ci
-    contains_mu <- rv$mu >= ci[1] & rv$mu <= ci[2]
-    
-    df <- data.frame(
-      y = 1,
-      x = xbar,
-      xmin = ci[1],
-      xmax = ci[2]
-    )
-    
-    ggplot(df, aes(x = x, y = y)) +
-      geom_point(size = 8, color = "darkblue") +
-      geom_errorbarh(aes(xmin = xmin, xmax = xmax), height = 0.2, size = 1.5,
-                     color = ifelse(contains_mu, "#4CAF50", "#f44336")) +
-      geom_vline(xintercept = rv$mu, linetype = "dashed", color = "red", size = 1.2) +
-      annotate("text", x = rv$mu, y = 1.3, label = paste("True μ =", rv$mu),
-               color = "red", fontface = "bold") +
-      annotate("text", x = xbar, y = 0.7, 
-               label = sprintf("[%.2f, %.2f]", ci[1], ci[2]),
-               color = ifelse(contains_mu, "#4CAF50", "#f44336"), fontface = "bold") +
-      labs(title = ifelse(contains_mu, 
-                          "✓ This CI Captures the True Value", 
-                          "✗ This CI Misses the True Value"),
-           subtitle = sprintf("%d%% Confidence Interval", input$conf_level),
-           x = "Value", y = "") +
+
+  output$history_plot_induction <- renderPlot({
+    if(nrow(history_induction()) == 0) {
+      # Show empty plot with instructions
+      ggplot() +
+        annotate("text", x = 0.5, y = 0.5,
+                 label = "Collect samples to see\nhistory accumulate here",
+                 size = 6, color = "gray50") +
+        theme_void() +
+        xlim(0, 1) + ylim(0, 1)
+    } else {
+      df_plot <- tail(history_induction(), 50)
+      ggplot(df_plot, aes(y = factor(id), x = x_bar)) +
+        geom_vline(xintercept = rv$mu, color = "red", size = 1.5, linetype = "dashed") +
+        geom_errorbarh(aes(xmin = lower, xmax = upper, color = as.factor(captured_true)),
+                       height = 0.3) +
+        geom_point(size = 2) +
+        scale_color_manual(values = c("0" = "#e74c3c", "1" = "#27ae60"),
+                           name = "Captured True μ?",
+                           labels = c("No", "Yes")) +
+        theme_minimal(base_size = 14) +
+        labs(title = "History of Last 50 Samples",
+             subtitle = "CIs 'fall' into place here",
+             x = "Value", y = "Sample ID") +
+        theme(legend.position = "top",
+              plot.title = element_text(hjust = 0.5),
+              plot.subtitle = element_text(hjust = 0.5))
+    }
+  })
+
+  output$capture_rate_plot_induction <- renderPlot({
+    req(nrow(history_induction()) > 0)
+    df <- history_induction() %>% mutate(cum_cap = cumsum(captured_true) / row_number())
+    alpha <- (100 - input$conf_level) / 100
+    expected_rate <- 1 - alpha
+
+    ggplot(df, aes(x = 1:nrow(df), y = cum_cap)) +
+      geom_line(color = "#2980b9", size = 1.2) +
+      geom_hline(yintercept = expected_rate, linetype = "dashed", color = "red", size = 1) +
       theme_minimal(base_size = 14) +
-      theme(axis.text.y = element_blank(),
-            axis.ticks.y = element_blank(),
-            panel.grid.major.y = element_blank(),
-            plot.title = element_text(hjust = 0.5),
-            plot.subtitle = element_text(hjust = 0.5))
+      labs(title = "Long-Run Coverage Rate",
+           x = "Number of Samples",
+           y = "Cumulative Coverage Rate") +
+      scale_y_continuous(limits=c(0,1)) +
+      theme(plot.title = element_text(hjust = 0.5))
   })
-  
-  # Run simulation with improved progress tracking
-  observeEvent(input$run_sim, {
-    n_reps <- input$n_sim
-    n <- input$n
-    mu <- rv$mu
-    sigma <- rv$sigma
-    dist <- input$dist
-    conf <- input$conf_level
-    
-    if (n < 2) {
-      showNotification("Sample size must be at least 2", type = "error")
-      return()
-    }
-    
-    rv$computing <- TRUE
-    
-    withProgress(message = 'Running simulation...', value = 0, {
-      ci_l <- numeric(n_reps)
-      ci_u <- numeric(n_reps)
-      xbar_vals <- numeric(n_reps)
-      contains_true <- logical(n_reps)
-      
-      for (i in 1:n_reps) {
-        if (i %% 100 == 0) {
-          incProgress(100/n_reps, detail = paste("Sample", i, "of", n_reps))
-        }
-        
-        x <- make_sample(n, mu, sigma, dist)
-        xbar_vals[i] <- mean(x)
-        ci_info <- compute_ci(x, conf, dist)
-        ci_l[i] <- ci_info$ci[1]
-        ci_u[i] <- ci_info$ci[2]
-        contains_true[i] <- (ci_l[i] <= mu) & (ci_u[i] >= mu)
-      }
-      
-      rv$sim_results <- data.frame(
-        rep = 1:n_reps,
-        mean = xbar_vals,
-        ci_l = ci_l,
-        ci_u = ci_u,
-        contains = contains_true
-      )
-      rv$sim_run <- TRUE
-      rv$computing <- FALSE
-    })
-    
-    showNotification("Simulation complete!", type = "message")
-  })
-  
-  output$simulation_results <- renderUI({
-    if (!rv$sim_run) {
-      return(div(class = "warning-box",
-                 HTML("<p>Click 'Run Repeated Sampling Simulation' to test the method.</p>
-                      <p>This will show how often the CI method captures the true value across many samples.</p>")))
-    }
-    
-    n_contain <- sum(rv$sim_results$contains)
-    n_total <- nrow(rv$sim_results)
-    pct_contain <- 100 * n_contain / n_total
-    expected <- input$conf_level
-    diff <- abs(pct_contain - expected)
-    
-    margin <- 3
-    is_good <- diff < margin
-    
-    div(class = if(is_good) "success-box" else "warning-box",
-        h4("Simulation Results", style = "margin-top: 0;"),
-        HTML(sprintf("<p style='font-size: 16px;'><b>%d out of %d CIs</b> contained the true value</p>
-                    <p style='font-size: 18px; font-weight: bold;'>Observed Coverage: %.2f%%</p>
-                    <p>Expected Coverage: ~%d%% (based on confidence level)</p>
-                    <p>Difference: %.2f percentage points</p>
-                    <p>%s</p>",
-                     n_contain, n_total, pct_contain, expected, diff,
-                     if(is_good) {
-                       "✓ <b>The method is working as expected!</b> The small difference is due to random variation."
-                     } else {
-                       "The difference from expected is larger than typical random variation. This could be due to the sample distribution or finite simulation size."
-                     }))
+
+  output$stats_summary_induction <- renderUI({
+    req(nrow(history_induction()) > 0)
+    df <- history_induction()
+    total <- nrow(df)
+    captured <- sum(df$captured_true)
+    coverage <- captured / total
+    alpha <- (100 - input$conf_level) / 100
+    expected_rate <- 1 - alpha
+
+    div(
+      style = "padding: 20px; background-color: #ecf0f1; border-radius: 5px;",
+      h4("Summary Statistics"),
+      p(tags$b("Total Samples:"), total),
+      p(tags$b("Captured True μ:"), captured),
+      p(tags$b("Coverage Rate:"), sprintf("%.3f", coverage)),
+      p(tags$b("Expected Rate:"), sprintf("%.3f", expected_rate)),
+      hr(),
+      p(tags$i("The coverage rate should converge to the expected rate as the number of samples increases."))
     )
   })
-  
-  output$repeated_ci_plot <- renderPlot({
-    if (!rv$sim_run) return(NULL)
-    
-    df <- rv$sim_results[1:min(100, nrow(rv$sim_results)), ]
-    
-    ggplot(df, aes(x = rep, y = mean, color = contains)) +
-      geom_point(alpha = 0.7, size = 2) +
-      geom_errorbar(aes(ymin = ci_l, ymax = ci_u), alpha = 0.4, width = 0) +
-      geom_hline(yintercept = rv$mu, color = "red", linetype = "dashed", size = 1.2) +
-      scale_color_manual(values = c("FALSE" = "#f44336", "TRUE" = "#4CAF50"),
-                         labels = c("Missed μ", "Captured μ"),
-                         name = "") +
-      labs(title = sprintf("First %d CIs from Repeated Sampling", nrow(df)),
-           subtitle = sprintf("Red line = true μ = %.2f", rv$mu),
-           x = "Sample Number", y = "Sample Mean with CI") +
+
+  output$ci_dist_plot_induction <- renderPlot({
+    req(nrow(history_induction()) > 0)
+    df <- history_induction()
+
+    ggplot() +
+      geom_density(data = df, aes(x = lower, fill = "Lower Bound"), alpha = 0.5) +
+      geom_density(data = df, aes(x = upper, fill = "Upper Bound"), alpha = 0.5) +
+      geom_vline(xintercept = rv$mu, linetype="dashed", size=1, color = "red") +
+      annotate("text", x = rv$mu, y = Inf, label = paste("True μ =", round(rv$mu, 2)),
+               color = "red", fontface = "bold", vjust = 2, hjust = -0.1) +
+      scale_fill_manual(name = "Bound Type",
+                        values = c("Lower Bound" = "red", "Upper Bound" = "blue")) +
+      labs(title = "Distribution of CI Bounds across Simulations",
+           subtitle = "The True Mean (dashed line) should sit comfortably between these two distributions.",
+           x = "Value", y = "Density") +
       theme_minimal(base_size = 14) +
       theme(legend.position = "top",
             plot.title = element_text(hjust = 0.5),
             plot.subtitle = element_text(hjust = 0.5))
   })
+  
   
   # DEDUCTION TAB
   output$known_mu_text <- renderText({
@@ -1177,17 +1077,6 @@ server <- function(input, output, session) {
           distribution = input$dist
         )
         write.csv(df, file, row.names = FALSE)
-      }
-    }
-  )
-  
-  output$download_sim <- downloadHandler(
-    filename = function() {
-      paste("simulation_results_", Sys.Date(), ".csv", sep = "")
-    },
-    content = function(file) {
-      if (!is.null(rv$sim_results)) {
-        write.csv(rv$sim_results, file, row.names = FALSE)
       }
     }
   )
