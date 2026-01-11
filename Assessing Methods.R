@@ -35,7 +35,11 @@ ui <- fluidPage(
                            conditionalPanel(condition = "input.show_ci == true",
                                             sliderInput("ci_level", "Confidence level:", min = 0.8, max = 0.99, value = 0.95, step = 0.01))),
                   tabPanel("Level 2: Confusion Matrices", value = "level2", br(),
-                           checkboxInput("show_formulas", "Show formula annotations", value = FALSE)),
+                           checkboxInput("show_formulas", "Show formula annotations", value = FALSE),
+                           checkboxInput("show_roc", "Show ROC curve", value = FALSE),
+                           checkboxInput("show_distributions", "Show SDT distributions", value = FALSE),
+                           conditionalPanel(condition = "input.show_distributions == true",
+                                            checkboxInput("separate_dists_cm", "Separate by True State", value = FALSE))),
                   tabPanel("Level 3: Balancing Reasons", value = "level3", br(),
                            actionButton("generate_case", "Generate New Test Case", class = "btn-primary", style = "width: 100%;"), br(), br(),
                            radioButtons("mbr_method", "MBR Calculation Method:",
@@ -79,7 +83,19 @@ ui <- fluidPage(
     ),
     mainPanel(
       conditionalPanel(condition = "input.complexity_level == 'level1'", h3("Level 1: Simple Success Rates"), htmlOutput("success_rates")),
-      conditionalPanel(condition = "input.complexity_level == 'level2'", h3("Level 2: Confusion Matrices"), htmlOutput("matrices_visual"), br(), plotOutput("barPlot", height = "300px")),
+      conditionalPanel(condition = "input.complexity_level == 'level2'",
+                       h3("Level 2: Confusion Matrices"),
+                       htmlOutput("matrices_visual"),
+                       br(),
+                       plotOutput("barPlot", height = "300px"),
+                       conditionalPanel(condition = "input.show_roc == true",
+                                        hr(),
+                                        h4("ROC Space"),
+                                        plotOutput("roc_plot_cm", height = "400px")),
+                       conditionalPanel(condition = "input.show_distributions == true",
+                                        hr(),
+                                        h4("Signal Detection Theory Distributions"),
+                                        plotOutput("dist_plot_cm", height = "350px"))),
       conditionalPanel(condition = "input.complexity_level == 'level3'", h3("Level 3: Method of Balancing Reasons"), htmlOutput("mbr_case_display"), br(), plotOutput("mbr_plot", height = "400px"), br(), verbatimTextOutput("mbr_details")),
       conditionalPanel(condition = "input.complexity_level == 'help'", h3("Confusion Matrix Glossary"), htmlOutput("help_display"))
     )
@@ -258,6 +274,92 @@ server <- function(input, output, session) {
       facet_wrap(~Metric, scales = "free_y") + scale_fill_manual(values = color_map) +
       labs(title = "Comparison of Metrics Across Methods", x = NULL, y = "Value") +
       theme_minimal(base_size = 14) + theme(legend.position = "none", axis.text.x = element_text(angle = 0))
+  })
+
+  output$roc_plot_cm <- renderPlot({
+    d <- data_vals()
+
+    # Create ROC curves for each method
+    roc_data <- lapply(d$forecasters, function(fc) {
+      # Generate points along the ROC curve for this method's d' and c values
+      # For simplicity, we'll use the single point (FPR, TPR) for each method
+      data.frame(
+        FPR = fc$FPR,
+        TPR = fc$TPR,
+        Method = fc$name,
+        Color = fc$color
+      )
+    })
+    roc_df <- bind_rows(roc_data)
+
+    ggplot(roc_df, aes(x = FPR, y = TPR, color = Method)) +
+      geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey") +
+      geom_point(size = 5) +
+      scale_color_manual(values = setNames(roc_df$Color, roc_df$Method)) +
+      coord_fixed(ratio = 1, xlim = c(0, 1), ylim = c(0, 1)) +
+      labs(title = "ROC Space", x = "P(False Alarm) = FPR", y = "P(Hit) = TPR") +
+      theme_minimal(base_size = 14) +
+      theme(legend.position = "right")
+  })
+
+  output$dist_plot_cm <- renderPlot({
+    d <- data_vals()
+
+    # Use the first forecaster for visualization (or could make this selectable)
+    if (length(d$forecasters) == 0) return(NULL)
+    fc <- d$forecasters[[1]]
+
+    # Calculate d' and criterion from TPR and FPR
+    # d' = z(TPR) - z(FPR), where z is the inverse normal CDF
+    # c = -z(FPR)
+    TPR_adj <- pmin(pmax(fc$TPR, 0.001), 0.999)
+    FPR_adj <- pmin(pmax(fc$FPR, 0.001), 0.999)
+
+    c_val <- -qnorm(FPR_adj)
+    d_val <- qnorm(TPR_adj) + qnorm(1 - FPR_adj)
+    s_val <- 1.0  # Assume equal variance
+
+    x <- seq(-4, 8, length.out = 400)
+    df_dist <- data.frame(x = x, noise = dnorm(x, 0, 1), signal = dnorm(x, d_val, s_val))
+
+    fill_vals <- c("Hit"="#2ca02c","Miss"="#d62728","False Alarm"="#ff7f0e","Correct Rejection"="#1f77b4")
+
+    if (input$separate_dists_cm) {
+      alpha_val <- 0.5
+      p <- ggplot(df_dist, aes(x = x)) +
+        geom_ribbon(data = subset(df_dist, x > c_val), aes(ymin = 0, ymax = signal, fill = "Hit"), alpha = alpha_val) +
+        geom_ribbon(data = subset(df_dist, x <= c_val), aes(ymin = 0, ymax = signal, fill = "Miss"), alpha = alpha_val) +
+        geom_line(aes(y = signal), color = "steelblue", size = 1) +
+        geom_ribbon(data = subset(df_dist, x > c_val), aes(ymin = -0.45, ymax = -0.45 + noise, fill = "False Alarm"), alpha = alpha_val) +
+        geom_ribbon(data = subset(df_dist, x <= c_val), aes(ymin = -0.45, ymax = -0.45 + noise, fill = "Correct Rejection"), alpha = alpha_val) +
+        geom_line(aes(y = -0.45 + noise), linetype = "dashed", color = "steelblue", size = 1) +
+        geom_vline(xintercept = c_val, color = "black", size = 1) +
+        geom_hline(yintercept = -0.45, color = "gray50", linetype = "dotted") +
+        geom_hline(yintercept = 0, color = "black", size = 0.3) +
+        scale_fill_manual(values = fill_vals) +
+        theme_minimal() +
+        labs(title = paste("Evidence Distributions -", fc$name, "(Separated by True State)"),
+             x = "Evidence", y = "Density", fill = "Outcome") +
+        annotate("text", x = min(x) + 1, y = 0.35, label = paste(scenario_info$event_name, "PRESENT"), fontface = "bold", hjust = 0) +
+        annotate("text", x = min(x) + 1, y = -0.1, label = scenario_info$no_event_name, fontface = "bold", hjust = 0) +
+        expand_limits(y = c(-0.45, 0))
+    } else {
+      p <- ggplot(df_dist, aes(x = x)) +
+        geom_ribbon(data = subset(df_dist, x > c_val), aes(ymin = 0, ymax = signal, fill = "Hit"), alpha = 0.5) +
+        geom_ribbon(data = subset(df_dist, x <= c_val), aes(ymin = 0, ymax = signal, fill = "Miss"), alpha = 0.5) +
+        geom_ribbon(data = subset(df_dist, x > c_val), aes(ymin = 0, ymax = noise, fill = "False Alarm"), alpha = 0.5) +
+        geom_ribbon(data = subset(df_dist, x <= c_val), aes(ymin = 0, ymax = noise, fill = "Correct Rejection"), alpha = 0.5) +
+        geom_line(aes(y = noise), linetype = "dashed", color = "steelblue", size = 1) +
+        geom_line(aes(y = signal), color = "steelblue", size = 1) +
+        geom_vline(xintercept = c_val, color = "black", size = 1) +
+        geom_hline(yintercept = 0, color = "black", size = 0.3) +
+        scale_fill_manual(values = fill_vals) +
+        theme_minimal() +
+        labs(title = paste("Evidence Distributions -", fc$name),
+             x = "Evidence", y = "Density", fill = "Outcome") +
+        expand_limits(y = 0)
+    }
+    p
   })
   
   observeEvent(input$generate_case, {
