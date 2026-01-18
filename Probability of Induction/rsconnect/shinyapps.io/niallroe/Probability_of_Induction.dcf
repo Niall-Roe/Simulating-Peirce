@@ -1,0 +1,13 @@
+name: Probability_of_Induction
+title: Probability_of_Induction
+username: niallroe
+account: niallroe
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 16449405
+bundleId: 11458197
+url: https://niallroe.shinyapps.io/Probability_of_Induction/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: app_backup.R|Probability of Induction - Text Only.R
