@@ -69,16 +69,17 @@ ui <- fluidPage(
       h4("FOURTH PAPER. — THE PROBABILITY OF INDUCTION."),
       
       div(class = "section-num", "I."),
-      p("We have found that every argument derives its force from the general truth of the class of inferences to which it belongs; and that probability is the proportion of arguments carrying truth with them among those of any ", em("genus"), ". This is most conveniently expressed in the nomenclature of the mediæval logicians. They called the fact expressed by a premise an ", em("antecedent"), ", and that which follows from it its ", em("consequent"), "; while the leading principle, that every (or almost every) such antecedent is followed by such a ", em("consequent"), ", they termed the ", em("consequence"), ". Using this language, we may say that probability belongs exclusively to consequences, and the probability of any consequence is the number of times in which antecedent and consequent both occur divided by the number of all the times in which the antecedent occurs. ",
+      p("We have found that every argument derives its force from the general truth of the class of inferences to which it belongs; and that probability is the proportion of arguments carrying truth with them among those of any ", em("genus"), ". This is most conveniently expressed in the nomenclature of the mediæval logicians. They called the fact expressed by a premise an ", em("antecedent"), ", and that which follows from it its ", em("consequent"), "; while the leading principle, that every (or almost every) such antecedent is followed by such a ", em("consequent"), ", they termed the ", em("consequence"), ". ",
         span(class = "example-trigger", id = "ex1-trigger",
              onclick = "Shiny.setInputValue('toggle_ex1', Math.random());",
-             "From this definition are deduced the following rules for the addition and multiplication of probabilities:")
+             "Using this language, we may say that probability belongs exclusively to consequences, and the probability of any consequence is the number of times in which antecedent and consequent both occur divided by the number of all the times in which the antecedent occurs.")
       ),
 
       div(id = "example-1", class = "example-container", style = "display: none;",
           p(strong("Interactive Example"), " — Interactive coming soon!")
       ),
-
+      
+      p("From this definition are deduced the following rules for the addition and multiplication of probabilities:"),
 
       p(span(class = "example-trigger", id = "ex2-trigger",
              onclick = "Shiny.setInputValue('toggle_ex2', Math.random());",
@@ -223,17 +224,17 @@ ui <- fluidPage(
           p(strong("Interactive Example"), " — Interactive coming soon!")
       ),
       
-      div(class = "table-container",
+      div(class = "table-container", 
           "wwww.
-wwwb. wwwb. wwbw. wwbw. wbww. wbww. bwww. bwww.
-wwbb. bbww.
-wbwb. bwwb. wbbw. bwbw.
-wwbb. bbww.
-wbwb. bwwb. wbbw. bwbw.
-wwbb. bbww.
-wbwb. bwwb. wbbw. bwbw.
-wwbb. bbww.
-wbwb. bwwb. wbbw. bwbw.
+
+wwwb. wwbw. wbww. bwww.
+wwwb. wwbw. wbww. bwww.
+
+wwbb. wbwb. bwwb. wbbw. bwbw. bbww.
+wwbb. wbwb. bwwb. wbbw. bwbw. bbww.
+wwbb. wbwb. bwwb. wbbw. bwbw. bbww.
+wwbb. wbwb. bwwb. wbbw. bwbw. bbww.
+
 wbbb. bwbb. bbwb. bbbw.
 wbbb. bwbb. bbwb. bbbw.
 wbbb. bwbb. bbwb. bbbw.
@@ -242,23 +243,9 @@ wbbb. bwbb. bbwb. bbbw.
 wbbb. bwbb. bbwb. bbbw.
 wbbb. bwbb. bbwb. bbbw.
 wbbb. bwbb. bbwb. bbbw.
-bbbb.
-bbbb.
-bbbb.
-bbbb.
-bbbb.
-bbbb.
-bbbb.
-bbbb.
-bbbb.
-bbbb.
-bbbb.
-bbbb.
-bbbb.
-bbbb.
-bbbb.
-bbbb.
-bbbb."
+
+bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb.
+bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb."
       ),
       
       p("In the second group, where there is one ", em("b"), ", there are two sets just alike; in the third there are 4, in the fourth 8, and in the fifth 16, doubling every time. This is because we have supposed twice as many black balls in the granary as white ones. Now suppose two balls were drawn from one of these urns and were found to be both white, what would be the probability of the next one being white? By inspecting the table, the reader can see that in each group all orders occur with equal frequency. ",
@@ -274,7 +261,7 @@ bbbb."
       p("The assumption that any such thing can be done leads simply to the conclusion that reasoning from past to future experience is absolutely worthless. ",
         span(class = "example-trigger", id = "ex16-trigger",
              onclick = "Shiny.setInputValue('toggle_ex16', Math.random());",
-             "In fact, the moment that you assume that the chances in favor of that of which we are totally ignorant are even, the problem about the tides does not differ, in any arithmetical particular, from the case in which a penny (known to be equally likely to come up heads and tails) should turn up heads m times successively. In short, it would be to assume that Nature is a pure chaos, or chance combination of independent elements, in which reasoning from one fact to another would be impossible; and since, as we shall hereafter see, there is no judgment of pure observation without reasoning, it would be to suppose all human cognition illusory and no real knowledge possible."), " It would be to suppose that if we have found the order of Nature more or less regular in the past, this has been by a pure run of luck which we may expect is now at an end. Now, it may be we have no scintilla of proof to the contrary, but reason is unnecessary in reference to that belief which is of all the most settled, which nobody doubts or can doubt, and which he who should deny would stultify himself in so doing."),
+             "In fact, the moment that you assume that the chances in favor of that of which we are totally ignorant are even, it would be to assume that Nature is a pure chaos, in which reasoning from one fact to another would be impossible."), " If we have found the order of Nature more or less regular in the past, this would be a pure run of luck which we may expect is now at an end. But reason is unnecessary in reference to that belief which is of all the most settled, which nobody doubts or can doubt."),
 
       div(id = "example-16", class = "example-container", style = "display: none;",
           p(strong("Interactive Example"), " — Interactive coming soon!")
@@ -347,7 +334,7 @@ bbbb."
       
       p(span(class = "example-trigger", id = "ex18-trigger",
              onclick = "Shiny.setInputValue('toggle_ex18', Math.random());",
-             "The use of this may be illustrated by an example. By the census of 1870, it appears that the proportion of males among native white children under one year old was 0.5082, while among colored children of the same age the proportion was only 0.4977. The difference between these is 0.0105, or about one in a 100. Can this be attributed to chance, or would the difference always exist among a great number of white and colored children under like circumstances? Here ", em("p"), " may be taken at 1/2; hence 2p(1-p) is also 1/2. The number of white children counted was near 1,000,000; hence the fraction whose square-root is to be taken is about 1/2,000,000. The root is about 1/1,400, and this multiplied by 0.477 gives about 0.0003 as the probable error in the ratio of males among the whites as obtained from the induction. The number of black children was about 150,000, which gives 0.0008 for the probable error. We see that the actual discrepancy is ten times the sum of these, and such a result would happen, according to our table, only once out of 10,000,000,000 censuses, in the long run.")
+             "The use of this may be illustrated by an example. By the census of 1870, it appears that the proportion of males among native white children under one year old was 0.5082, while among colored children of the same age the proportion was only 0.4977. The difference is 0.0105, or about one in a 100. Can this be attributed to chance? Here ", em("p"), " may be taken at 1/2; hence 2p(1-p) is also 1/2. The number of white children counted was near 1,000,000; hence the fraction whose square-root is to be taken is about 1/2,000,000. The root is about 1/1,400, and this multiplied by 0.477 gives about 0.0003 as the probable error. For black children (about 150,000), the error is 0.0008. We see that the actual discrepancy is ten times the sum of these, and such a result would happen only once out of 10,000,000,000 censuses, in the long run.")
       ),
 
       div(id = "example-18", class = "example-container", style = "display: none;",
@@ -356,7 +343,7 @@ bbbb."
       
       p(span(class = "example-trigger", id = "ex19-trigger",
              onclick = "Shiny.setInputValue('toggle_ex19', Math.random());",
-             "It may be remarked that when the real value of the probability sought inductively is either very large or very small, the reasoning is more secure. Thus, suppose there were in reality one white ball in 100 in a certain urn, and we were to judge of the number by 100 drawings. The probability of drawing no white ball would be 366/1000; that of drawing one white ball would be 370/1000; that of drawing two would be 185/1000; that of drawing three would be 61/1000; that of drawing four would be 15/1000; that of drawing five would be only 3/1000, etc. Thus we should be tolerably certain of not being in error by more than one ball in 100.")
+             "It may be remarked that when the real value of the probability sought inductively is either very large or very small, the reasoning is more secure. Thus, suppose there were in reality one white ball in 100 in a certain urn, and we were to judge of the number by 100 drawings. The probability of drawing no white ball would be 366 1000; that of drawing one white ball would be 370 1000; that of drawing two would be 185 1000; that of drawing three would be 1000; that of 61 drawing four would be 15 1000; that of drawing five would be only 3 etc. Thus we should be tolerably certain of not 1000 being in error by more than one ball in 100.")
       ),
 
       div(id = "example-19", class = "example-container", style = "display: none;",
@@ -386,23 +373,35 @@ bbbb."
       ),
       p(span(class = "example-trigger", id = "ex21-trigger",
              onclick = "Shiny.setInputValue('toggle_ex21', Math.random());",
-             "I do not in the least know how often such reasoning would carry me right."), " On the other hand, what I do know is that some definite proportion of Cretans must have been liars, and that this proportion can be probably approximated to by an induction from five or six instances. Even in the worst case for the probability of such an inference, that in which about half the Cretans are liars, the ratio so obtained would probably not be in error by more than 1/6. So much I know; but, then, in the present case the inference is that pretty much all Cretans are liars, and whether there may not be a special improbability in that I do not know."),
+             "I do not in the least know how often such reasoning would carry me right."), " On the other hand, what I do know is that some definite proportion of Cretans must have been liars, and that this proportion can be probably approximated to by an induction from five or six instances. Even in the worst case for the probability of such an inference, that in which about half the Cretans are liars, the ratio so obtained would probably not be in error by more than 1 6. So much I know;"),
 
       div(id = "example-21", class = "example-container", style = "display: none;",
           p(strong("Interactive Example"), " — Interactive coming soon!")
+      ), 
+    
+      
+      div(class = "section-num", "V."),
+      p("Late in the last century, Immanuel Kant asked the question, \"How are synthetical judgments a priori possible?\" By synthetical judgments he meant such as assert positive fact and are not mere affairs of arrangement. But before asking that question he ought to have asked the more general one, \"How are any synthetical judgments at all possible?\" How is it that a man can observe one fact and straightway pronounce judgment concerning another different fact not involved in the first?"),
+      
+      p("This is a strange paradox; the Abbé Gratry says it is a miracle, and that every true induction is an immediate inspiration from on high. I respect this explanation because it shows an appreciation of the depth of the problem. At the same time, I do not accept it, because an explanation should tell how a thing is done."),
+      
+      p("Synthetic inference is founded upon a classification of facts, not according to their characters, but according to the manner of obtaining them. Its rule is, that a number of facts obtained in a given way will in general more or less resemble other facts obtained in the same way; or, experiences whose conditions are the same will have the same general characters. In the case of analytic inference we know the probability of our conclusion; but in the case of synthetic inferences we only know the degree of trustworthiness of our proceeding."),
+      
+      p(span(class = "example-trigger", id = "ex22-trigger",
+             onclick = "Shiny.setInputValue('toggle_ex22', Math.random());",
+             "When we draw a deductive or analytic conclusion, our rule of inference is that facts of a certain general character are either invariably or in a certain proportion of cases accompanied by facts of another general character. Then our premise being a fact of the former class, we infer withc ertainty or with the appropriate degree of probability the existence of a fact of the second class."), " ",
+        span(class = "example-trigger", id = "ex23-trigger",
+             onclick = "Shiny.setInputValue('toggle_ex23', Math.random());",
+             "But the rule for synthetic inference is of a different kind. When we sample a bag of beans we do not in the least assume that the fact of some beans being purple involves the necessity or even the probability of other beans being so. On the contrary, the conceptualistic method of treating probabilities, which really amounts simply to the deductive treatment of them, when rightly carried out leads to the result that a synthetic inference has just an even chance in its favor, or in other words is absolutely worthless. The color of one bean is entirely independent of that of another. But synthetic inference is founded upon a classification of facts, not according to their characters, but according to the manner of obtaining them. Its rule is, that a number of facts obtained in a given way will in general more or less resemble other facts obtained in the same way; or, experiences whose conditions are the same will have the same general characters.")
       ),
 
+      div(id = "example-22", class = "example-container", style = "display: none;",
+          p(strong("Interactive Example"), " — Interactive coming soon!")
+      ),
 
-      div(class = "section-num", "V."),
-      p("Late in the last century, Immanuel Kant asked the question, \"How are synthetical judgments a priori possible?\" By synthetical judgments he meant such as assert positive fact and are not mere affairs of arrangement; in short, judgments of the kind which synthetical reasoning produces, and which analytic reasoning cannot yield. By a priori judgments he meant such as that all outward objects are in space, every event has a cause, etc., propositions which according to him can never be inferred from experience. Not so much by his answer to this question as by the mere asking of it, the current philosophy of that time was shattered and destroyed, and a new epoch in its history was begun. But before asking that question he ought to have asked the more general one, \"How are any synthetical judgments at all possible?\" How is it that a man can observe one fact and straightway pronounce judgment concerning another different fact not involved in the first?"),
-
-      p("Such reasoning, as we have seen, has, at least in the usual sense of the phrase, no definite probability; how, then, can it add to our knowledge? This is a strange paradox; the Abbé Gratry says it is a miracle, and that every true induction is an immediate inspiration from on high. I respect this explanation far more than many a pedantic attempt to solve the question by some juggle with probabilities, with the forms of syllogism, or what not. I respect it because it shows an appreciation of the depth of the problem, because it assigns an adequate cause, and because it is intimately connected—as the true account should be—with a general philosophy of the universe. At the same time, I do not accept this explanation, because an explanation should tell how a thing is done, and to assert a perpetual miracle seems to be an abandonment of all hope of doing that, without sufficient justification."),
-
-      p("It will be interesting to see how the answer which Kant gave to his question about synthetical judgments a priori will appear if extended to the question of synthetical judgments in general. That answer is, that synthetical judgments a priori are possible because whatever is universally true is involved in the conditions of experience. Let us apply this to a general synthetical reasoning. I take from a bag a handful of beans; they are all purple, and I infer that all the beans in the bag are purple. How can I do that? Why, upon the principle that whatever is universally true of my experience (which is here the appearance of these different beans) is involved in the condition of experience. The condition of this special experience is that all these beans were taken from that bag. According to Kant's principle, then, whatever is found true of all the beans drawn from the bag must find its explanation in some peculiarity of the contents of the bag. This is a satisfactory statement of the principle of induction."),
-
-      p("When we draw a deductive or analytic conclusion, our rule of inference is that facts of a certain general character are either invariably or in a certain proportion of cases accompanied by facts of another general character. Then our premise being a fact of the former class, we infer with certainty or with the appropriate degree of probability the existence of a fact of the second class. But the rule for synthetic inference is of a different kind. When we sample a bag of beans we do not in the least assume that the fact of some beans being purple involves the necessity or even the probability of other beans being so. On the contrary, the conceptualistic method of treating probabilities, which really amounts simply to the deductive treatment of them, when rightly carried out leads to the result that a synthetic inference has just an even chance in its favor, or in other words is absolutely worthless. The color of one bean is entirely independent of that of another. But synthetic inference is founded upon a classification of facts, not according to their characters, but according to the manner of obtaining them. Its rule is, that a number of facts obtained in a given way will in general more or less resemble other facts obtained in the same way; or, experiences whose conditions are the same will have the same general characters."),
-
-      p("In the former case, we know that premises precisely similar in form to those of the given ones will yield true conclusions, just once in a calculable number of times. In the latter case, we only know that premises obtained under circumstances similar to the given ones (though perhaps themselves very different) will yield true conclusions, at least once in a calculable number of times. We may express this by saying that in the case of analytic inference we know the probability of our conclusion (if the premises are true), but in the case of synthetic inferences we only know the degree of trustworthiness of our proceeding. As all knowledge comes from synthetic inference, we must equally infer that all human certainty consists merely in our knowing that the processes by which our knowledge has been derived are such as must generally have led to true conclusions."),
+      div(id = "example-23", class = "example-container", style = "display: none;",
+          p(strong("Interactive Example"), " — Interactive coming soon!")
+      ),
       
       p("Though a synthetic inference cannot by any means be reduced to deduction, yet that the rule of induction will hold good in the long run may be deduced from the principle that reality is only the object of the final opinion to which sufficient investigation would lead. That belief gradually tends to fix itself under the influence of inquiry is, indeed, one of the facts with which logic sets out."),
       

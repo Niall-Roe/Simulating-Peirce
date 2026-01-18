@@ -136,6 +136,23 @@ library(shinyjs)
 #   6 we will need a way to make sure this does not get bonkers for large numbers of possible combinations. maybe if the number of combinations is high, we can still display the number (if it is easy to calculate) but if not, just say "more than a thousand" or something. then, the above can be modified so that it says "more than a thousand" for the always present text, and for the clicked text, gives your probabilities with 1000 as the denominator. 
 
 
+# Helper function to calculate total possible outcomes using binomial expansion
+# For ratio w:b and n draws, total = (w + b)^n
+calculate_total_outcomes <- function(p, s) {
+  # Convert p to ratio (e.g., p=1/3 means 1 white : 2 black)
+  # We'll use the binomial expansion formula
+  # For sampling with replacement, calculate (1/p + (1-p)/p)^s simplified
+  # But for display purposes, we want the actual count based on the ratio
+
+  # Extract numerator and denominator from p
+  p_frac <- decimal_to_fraction(p)
+  white_weight <- p_frac$num
+  black_weight <- p_frac$den - p_frac$num
+
+  total <- (white_weight + black_weight)^s
+  return(list(total = total, w = white_weight, b = black_weight, base = white_weight + black_weight))
+}
+
 # Helper function to convert decimal to simple fraction
 # Prefers clean denominators (especially 1000)
 decimal_to_fraction <- function(x, max_denom = 1000) {
@@ -144,7 +161,7 @@ decimal_to_fraction <- function(x, max_denom = 1000) {
     "1/2" = 0.5, "1/3" = 1/3, "2/3" = 2/3,
     "1/4" = 0.25, "3/4" = 0.75,
     "1/5" = 0.2, "2/5" = 0.4, "3/5" = 0.6, "4/5" = 0.8,
-    "1/10" = 0.1, "1/100" = 0.01
+    "1/10" = 0.1, "1/100" = 0.01, "1/1000" = 0.001
   )
 
   for (frac_name in names(common_fractions)) {
@@ -252,21 +269,25 @@ ui <- fluidPage(
                          min = 0.001, max = 0.999, value = 0.333, step = 0.001),
               sliderInput("ex19_s", "Sample size (s):",
                          min = 4, max = 500, value = 4, step = 1),
-              checkboxInput("ex19_rescale", "Rescale chart (zoom to ±5σ)", TRUE),
-              checkboxInput("ex19_xaxis_balls", "X-axis: Number of balls", FALSE),
+              checkboxInput("ex19_rescale", "Rescale chart (zoom to ±5σ)", FALSE),
+              checkboxInput("ex19_xaxis_balls", "X-axis: Number of balls", TRUE),
               hr(),
-              checkboxInput("ex19_show_prediction", "Show prediction interval (true p)", TRUE),
+              checkboxInput("ex19_enable_ci", "Enable Confidence Intervals (not part of this example)", FALSE),
               conditionalPanel(
-                condition = "input.ex19_show_prediction == true",
-                sliderInput("ex19_pred_cl", "Prediction confidence level:",
-                           min = 0.50, max = 0.99, value = 0.50, step = 0.01)
-              ),
-              hr(),
-              checkboxInput("ex19_show_ci", "Show confidence interval (observed)", TRUE),
-              conditionalPanel(
-                condition = "input.ex19_show_ci == true",
-                sliderInput("ex19_cl", "Confidence level:",
-                           min = 0.50, max = 0.99, value = 0.50, step = 0.01)
+                condition = "input.ex19_enable_ci == true",
+                checkboxInput("ex19_show_prediction", "Show prediction interval (true p)", FALSE),
+                conditionalPanel(
+                  condition = "input.ex19_show_prediction == true",
+                  sliderInput("ex19_pred_cl", "Prediction confidence level:",
+                             min = 0.50, max = 0.99, value = 0.50, step = 0.01)
+                ),
+                hr(),
+                checkboxInput("ex19_show_ci", "Show confidence interval (observed)", FALSE),
+                conditionalPanel(
+                  condition = "input.ex19_show_ci == true",
+                  sliderInput("ex19_cl", "Confidence level:",
+                             min = 0.50, max = 0.99, value = 0.50, step = 0.01)
+                )
               ),
               hr(),
               actionButton("ex19_reset", "Reset conditions", class = "btn-primary")
@@ -283,15 +304,15 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   observeEvent(input$toggle_ex19, { shinyjs::toggle("example-19") })
 
-  # Reset to 1-in-100 urn example
+  # Reset to 1-in-3 urn example (Peirce's example)
   observeEvent(input$ex19_reset, {
-    updateSliderInput(session, "ex19_p", value = 0.01)
-    updateSliderInput(session, "ex19_s", value = 100)
-    updateCheckboxInput(session, "ex19_rescale", value = TRUE)
-    updateCheckboxInput(session, "ex19_xaxis_balls", value = FALSE)
-    updateCheckboxInput(session, "ex19_show_prediction", value = TRUE)
+    updateSliderInput(session, "ex19_p", value = 1/3)
+    updateSliderInput(session, "ex19_s", value = 4)
+    updateCheckboxInput(session, "ex19_rescale", value = FALSE)
+    updateCheckboxInput(session, "ex19_xaxis_balls", value = TRUE)
+    updateCheckboxInput(session, "ex19_show_prediction", value = FALSE)
     updateSliderInput(session, "ex19_pred_cl", value = 0.50)
-    updateCheckboxInput(session, "ex19_show_ci", value = TRUE)
+    updateCheckboxInput(session, "ex19_show_ci", value = FALSE)
     updateSliderInput(session, "ex19_cl", value = 0.50)
   })
 
@@ -385,7 +406,8 @@ server <- function(input, output, session) {
     delta <- 1 / s
 
     # Prediction interval under true p (shaded green area)
-    if (!is.null(input$ex19_show_prediction) && input$ex19_show_prediction) {
+    enable_ci <- !is.null(input$ex19_enable_ci) && input$ex19_enable_ci
+    if (enable_ci && !is.null(input$ex19_show_prediction) && input$ex19_show_prediction) {
       pred_cl <- input$ex19_pred_cl
       if (!is.null(pred_cl)) {
         # Calculate prediction interval
@@ -436,28 +458,31 @@ server <- function(input, output, session) {
       abline(v = p, lty = 2, lwd = 2, col = "red")
     }
 
-    # If a bar is clicked, show observed distribution and CI
+    # If a bar is clicked, show observed distribution and CI (only if CI enabled)
     if (!is.null(clicked_bar())) {
       clicked_k <- clicked_bar()
       p_hat <- clicked_k / s
 
-      # Overlay observed distribution in blue (dashed)
-      sigma_obs <- sqrt(p_hat * (1 - p_hat) / s)
+      # Only show blue distribution if CI is enabled
+      if (enable_ci) {
+        # Overlay observed distribution in blue (dashed)
+        sigma_obs <- sqrt(p_hat * (1 - p_hat) / s)
 
-      if (use_balls) {
-        x_seq_obs <- seq(xlim[1], xlim[2], length.out = 1000)
-        lines(x_seq_obs,
-              dnorm(x_seq_obs, mean = p_hat * s, sd = sigma_obs * s),
-              col = "blue", lwd = 2, lty = 2)
-      } else {
-        x_seq_obs <- seq(xlim[1], xlim[2], length.out = 1000)
-        lines(x_seq_obs,
-              dnorm(x_seq_obs, mean = p_hat, sd = sigma_obs) * delta,
-              col = "blue", lwd = 2, lty = 2)
+        if (use_balls) {
+          x_seq_obs <- seq(xlim[1], xlim[2], length.out = 1000)
+          lines(x_seq_obs,
+                dnorm(x_seq_obs, mean = p_hat * s, sd = sigma_obs * s),
+                col = "blue", lwd = 2, lty = 2)
+        } else {
+          x_seq_obs <- seq(xlim[1], xlim[2], length.out = 1000)
+          lines(x_seq_obs,
+                dnorm(x_seq_obs, mean = p_hat, sd = sigma_obs) * delta,
+                col = "blue", lwd = 2, lty = 2)
+        }
       }
 
       # Confidence interval for observed p_hat
-      if (!is.null(input$ex19_show_ci) && input$ex19_show_ci) {
+      if (enable_ci && !is.null(input$ex19_show_ci) && input$ex19_show_ci) {
         cl <- input$ex19_cl
         if (!is.null(cl)) {
           ci <- binom.test(clicked_k, s, conf.level = cl)$conf.int
@@ -486,7 +511,7 @@ server <- function(input, output, session) {
     legend_lty <- c(1, 2, 2)
     legend_col <- c("black", "darkgreen", "red")
 
-    if (!is.null(input$ex19_show_prediction) && input$ex19_show_prediction && !is.null(input$ex19_pred_cl)) {
+    if (enable_ci && !is.null(input$ex19_show_prediction) && input$ex19_show_prediction && !is.null(input$ex19_pred_cl)) {
       legend_items <- c(legend_items, paste0(input$ex19_pred_cl * 100, "% prediction interval"))
       legend_lwd <- c(legend_lwd, NA)
       legend_lty <- c(legend_lty, NA)
@@ -498,7 +523,7 @@ server <- function(input, output, session) {
       legend_pt_cex <- c(NA, NA, NA)
     }
 
-    if (!is.null(clicked_bar())) {
+    if (!is.null(clicked_bar()) && enable_ci) {
       legend_items <- c(legend_items, "Distribution under observed p-hat")
       legend_lwd <- c(legend_lwd, 2)
       legend_lty <- c(legend_lty, 2)
@@ -534,11 +559,31 @@ server <- function(input, output, session) {
     # Convert p to fraction
     p_frac <- decimal_to_fraction(p)
 
+    # Calculate total outcomes using binomial expansion
+    outcome_data <- calculate_total_outcomes(p, s)
+    total_outcomes <- outcome_data$total
+
+    # Determine if we should use "more than a thousand" language
+    use_approx <- total_outcomes > 1000
+
     # Pre-click state
     if (is.null(clicked_bar())) {
+      # Base text describing the setup (task 4)
+      base_intro <- p("Suppose ",
+        strong(number_word(p_frac$num)), " ", pluralize_ball(p_frac$num), " out of ",
+        strong(p_frac$den), " is white and the rest black, and that ",
+        strong(number_word(s)), " balls are drawn. Thus there are ",
+        if (use_approx) {
+          strong("more than a thousand")
+        } else {
+          strong(format(total_outcomes, big.mark = ","))
+        },
+        " possible outcomes.")
+
       # Calculate prediction interval text if toggle is on
       prediction_text <- NULL
-      if (!is.null(input$ex19_show_prediction) && input$ex19_show_prediction) {
+      enable_ci <- !is.null(input$ex19_enable_ci) && input$ex19_enable_ci
+      if (enable_ci && !is.null(input$ex19_show_prediction) && input$ex19_show_prediction) {
         pred_cl <- input$ex19_pred_cl
         if (!is.null(pred_cl)) {
           pred_ci <- binom.test(round(p * s), s, conf.level = pred_cl)$conf.int
@@ -547,13 +592,7 @@ server <- function(input, output, session) {
           margin_upper <- abs(pred_ci[2] - p) * s
           margin <- max(margin_lower, margin_upper)
 
-          prediction_text <- p("Suppose there were in reality ",
-            strong(paste0(p_frac$num, " white ", pluralize_ball(p_frac$num))),
-            " in ",
-            strong(p_frac$den),
-            " in a certain urn, and we were to judge of the number by ",
-            strong(s),
-            " drawings. Thus, we should be tolerably certain of not being in error by more than ",
+          prediction_text <- p("We should be tolerably certain of not being in error by more than ",
             strong(sprintf("%.1f", margin)),
             " ",
             pluralize_ball(round(margin)),
@@ -565,17 +604,21 @@ server <- function(input, output, session) {
 
       return(div(class = "click-info",
                 p(em("Click on any bar in the chart to see the exact probability for that outcome.")),
+                base_intro,
                 prediction_text))
     }
 
     # Post-click state
     clicked_k <- clicked_bar()
 
-    # Calculate probability
+    # Calculate probability using exact binomial
     prob <- dbinom(clicked_k, size = s, prob = p)
 
-    # Express probability as fraction out of 1000
-    prob_num <- round(prob * 1000)
+    # Calculate frequency in terms of total outcomes (task 2, 3)
+    # Frequency = C(s, k) * w^k * b^(s-k)
+    w <- outcome_data$w
+    b <- outcome_data$b
+    frequency <- choose(s, clicked_k) * (w^clicked_k) * (b^(s - clicked_k))
 
     # Pluralization
     num_white_text <- if (clicked_k == 1) {
@@ -584,24 +627,70 @@ server <- function(input, output, session) {
       paste(clicked_k, pluralize_ball(clicked_k))
     }
 
-    # Base text (always shown)
-    base_text <- p("Suppose there were in reality ",
-      strong(paste0(p_frac$num, " white ", pluralize_ball(p_frac$num))),
-      " in ",
-      strong(p_frac$den),
-      " in a certain urn, and we were to judge of the number by ",
-      strong(s),
-      " drawings. The probability of drawing ",
-      strong(num_white_text),
-      " would be ",
-      strong(paste0(prob_num, "/1000")),
-      " = ",
-      strong(sprintf("%.3f", prob)),
-      ".")
+    # Task 5: Main click text showing frequency in terms of total
+    click_proportion <- paste0(clicked_k, "/", s)
+    click_proportion_decimal <- sprintf("%.3f", clicked_k / s)
 
-    # Prediction interval text (green toggle)
+    # Build base text with both representations (task 3)
+    if (use_approx) {
+      # Use /1000 approximation
+      prob_num_1000 <- round(prob * 1000)
+      base_text <- p("Suppose there were in reality ",
+        strong(paste0(p_frac$num, " white ", pluralize_ball(p_frac$num))),
+        " in ",
+        strong(p_frac$den),
+        " in a certain urn, and we were to judge of the number by ",
+        strong(s),
+        " drawings. The probability of drawing ",
+        strong(num_white_text),
+        " would be ",
+        strong(paste0(prob_num_1000, "/1000")),
+        " = ",
+        strong(sprintf("%.3f", prob)),
+        ".")
+
+      # Task 5 text
+      proportion_text <- p("It will be seen that if we should judge by these ",
+        strong(number_word(s)), " balls of the proportion in the urn, approximately ",
+        strong(prob_num_1000), " times out of ", strong("1000"),
+        " we should find it to be ",
+        strong(click_proportion),
+        " = ",
+        strong(click_proportion_decimal),
+        ".")
+    } else {
+      # Use exact total outcomes
+      base_text <- p("Suppose there were in reality ",
+        strong(paste0(p_frac$num, " white ", pluralize_ball(p_frac$num))),
+        " in ",
+        strong(p_frac$den),
+        " in a certain urn, and we were to judge of the number by ",
+        strong(s),
+        " drawings. The probability of drawing ",
+        strong(num_white_text),
+        " would be ",
+        strong(paste0(round(prob * 1000), "/1000")),
+        " = ",
+        strong(sprintf("%.3f", prob)),
+        " = ",
+        strong(paste0(frequency, "/", total_outcomes)),
+        ".")
+
+      # Task 5 text with exact counts
+      proportion_text <- p("It will be seen that if we should judge by these ",
+        strong(number_word(s)), " balls of the proportion in the urn, ",
+        strong(frequency), " times out of ", strong(total_outcomes),
+        " we should find it to be ",
+        strong(click_proportion),
+        " = ",
+        strong(click_proportion_decimal),
+        ".")
+    }
+
+    # Prediction interval text (green toggle) - only if CI enabled
     prediction_text <- NULL
-    if (!is.null(input$ex19_show_prediction) && input$ex19_show_prediction) {
+    enable_ci <- !is.null(input$ex19_enable_ci) && input$ex19_enable_ci
+    if (enable_ci && !is.null(input$ex19_show_prediction) && input$ex19_show_prediction) {
       pred_cl <- input$ex19_pred_cl
       if (!is.null(pred_cl)) {
         pred_ci <- binom.test(round(p * s), s, conf.level = pred_cl)$conf.int
@@ -620,9 +709,9 @@ server <- function(input, output, session) {
       }
     }
 
-    # Observed CI text (blue toggle)
+    # Observed CI text (blue toggle) - only if CI enabled
     ci_text <- NULL
-    if (!is.null(input$ex19_show_ci) && input$ex19_show_ci) {
+    if (enable_ci && !is.null(input$ex19_show_ci) && input$ex19_show_ci) {
       cl <- input$ex19_cl
       if (!is.null(cl)) {
         ci <- binom.test(clicked_k, s, conf.level = cl)$conf.int
@@ -642,7 +731,11 @@ server <- function(input, output, session) {
           " and ",
           strong(sprintf("%.3f", ci[2])),
           ". As we know the true proportion, we also know that such a result would occur ",
-          strong(paste0(prob_num, "/1000")),
+          if (use_approx) {
+            strong(paste0(round(prob * 1000), "/1000"))
+          } else {
+            strong(paste0(frequency, "/", total_outcomes))
+          },
           " times in the long run.")
       }
     }
@@ -651,6 +744,7 @@ server <- function(input, output, session) {
     div(class = "click-info",
         p(strong("Clicked outcome: "), clicked_k, " white balls out of ", s, " drawings"),
         base_text,
+        proportion_text,
         prediction_text,
         ci_text
     )
