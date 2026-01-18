@@ -80,26 +80,30 @@ ui <- fluidPage(
             p("Peirce's formula tells us how accurate our induction will be. If the true proportion of white balls is ",
               strong("p"), " and we draw ", strong("s"), " balls, the error will be within certain bounds with known frequencies."),
 
-            p("After drawing ", strong("s"), " balls, our estimate of ", strong("p"),
-              " (called ", withMathJax("$$\\hat{p}$$"), ", equal to white balls sampled / number of samples) will be ",
+            p("After drawing ", strong("s"), " balls, our estimate of ", strong("p"), " (called ",
+              withMathJax("$$\\hat{p}$$"), ", equal to white balls sampled / number of samples) will be ",
               withMathJax("$$\\hat{p} \\pm e$$")),
 
             p("The value of ", em("e"), " is equal to: ", withMathJax("$$e = \\text{constant} \\times \\sqrt{\\frac{2p(1-p)}{s}}$$")),
 
+            p(em("Try changing ", strong("s"), " to see how the distribution changes, or the confidence level to see how the interval width changes.")),
+
             fluidRow(
               column(4,
                 sliderInput("ex17_p", "True proportion (p):",
-                           min = 0.1, max = 0.9, value = 0.5, step = 0.05),
+                           min = 0.1, max = 0.9, value = 0.5, step = 0.001),
                 sliderInput("ex17_s", "Number of balls drawn (s):",
                            min = 10, max = 1000, value = 100, step = 10),
+                checkboxInput("ex17_rescale", "Rescale charts", FALSE),
+                hr(),
                 selectInput("ex17_confidence", "Select confidence level:",
-                           choices = c("50% (half the time)" = "50",
+                           choices = c("Custom" = "custom",
+                                      "50% (half the time)" = "50",
                                       "90% (9 times out of 10)" = "90",
                                       "99% (99 times out of 100)" = "99",
                                       "99.9% (999 times out of 1,000)" = "99.9",
                                       "99.99% (9,999 times out of 10,000)" = "99.99",
-                                      "99.99999999% (9,999,999,999 times out of 10,000,000,000)" = "99.99999999",
-                                      "Custom" = "custom"),
+                                      "99.99999999% (9,999,999,999 times out of 10,000,000,000)" = "99.99999999"),
                            selected = "90"),
                 conditionalPanel(
                   condition = "input.ex17_confidence == 'custom'",
@@ -363,14 +367,19 @@ server <- function(input, output, session) {
     result_color <- if(data$contains_p) "#27ae60" else "#e74c3c"
     result_text <- if(data$contains_p) "✓ Contains p" else "✗ Does not contain p"
 
+    # Calculate error margin
+    margin <- (data$ci_upper - data$ci_lower) / 2
+
     div(
       style = "padding: 15px; background-color: #ecf0f1; border-radius: 5px;",
       h5("Most Recent Sample:"),
       p(tags$b("White balls drawn: "), data$white_balls, " out of ", data$s),
-      p(tags$b(HTML("p&#770;: ")), sprintf("%.4f", data$p_hat)),
-      p(tags$b("True p: "), sprintf("%.4f", data$p)),
+      p(tags$b("Observed ", withMathJax("$$\\hat{p}$$"), ": "), sprintf("%.4f", data$p_hat)),
+      p(tags$b(paste0("Estimated true proportion (", data$conf_level, "% confidence): ")),
+        withMathJax(sprintf("$$\\hat{p} = %.4f \\pm %.4f$$", data$p_hat, margin))),
       p(tags$b(paste0(data$conf_level, "% Confidence Interval: ")),
         sprintf("[%.4f, %.4f]", data$ci_lower, data$ci_upper)),
+      p(tags$b("True p: "), sprintf("%.4f", data$p)),
       div(style = paste0("padding: 10px; margin-top: 10px; background-color:", result_color,
                         "; color: white; border-radius: 5px; text-align: center; font-weight: bold;"),
           result_text)
@@ -381,71 +390,100 @@ server <- function(input, output, session) {
   output$ex17_combined_plot <- renderPlot({
     p <- input$ex17_p
     s <- input$ex17_s
+    rescale <- input$ex17_rescale
+
+    # Use exact binomial distribution (task 1)
+    # Discrete support
+    k <- 0:s
+    phat <- k / s
+
+    # Exact binomial distribution under true p
+    probs <- dbinom(k, size = s, prob = p)
 
     # Standard error for proportion
     se <- sqrt(p * (1 - p) / s)
+    delta <- 1 / s
 
-    # Fixed x-axis from 0 to 1
-    x_range <- seq(0, 1, length.out = 500)
-
-    # Create base plot
-    plot(NULL, xlim = c(0, 1), ylim = c(0, 1),
-         main = "Distribution of p-hat with Current Sample",
-         xlab = expression(hat(p)),
-         ylab = "Density",
-         type = "n")
-
-    # Add vertical line at true p
-    abline(v = p, col = "orange", lwd = 3, lty = 1)
+    # Determine x-axis limits based on rescale option
+    if (rescale && !is.null(input$ex17_rescale)) {
+      # Zoom to ±5σ around true p
+      xlim <- c(max(0, p - 5*se), min(1, p + 5*se))
+    } else {
+      xlim <- c(0, 1)
+    }
 
     # If we have a current sample, show distribution and CI
     if(!is.null(current_sample_data())) {
       data <- current_sample_data()
 
-      # Calculate theoretical distribution centered at p_hat
-      y <- dnorm(x_range, mean = data$p_hat, sd = se)
-
-      # Adjust y-axis to fit the curve
-      plot(x_range, y, type = "l", lwd = 2,
-           main = "Distribution of p-hat with Current Sample",
+      # Plot exact binomial distribution as bars
+      plot(phat, probs,
+           type = "h", lwd = 3,
+           xlim = xlim,
+           ylim = c(0, max(probs) * 1.3),
            xlab = expression(hat(p)),
-           ylab = "Density",
-           col = "#2c7fb8",
-           xlim = c(0, 1),
-           ylim = c(0, max(y) * 1.1))
+           ylab = "Probability mass",
+           main = "Sampling Distribution of p-hat",
+           col = "gray60")
 
-      # Re-add vertical line at true p
+      points(phat, probs, pch = 16, cex = 1.2, col = "gray60")
+
+      # Overlay normal approximation
+      x_range <- seq(0, 1, length.out = 500)
+      y_norm <- dnorm(x_range, mean = p, sd = se) * delta
+      lines(x_range, y_norm, col = "#2c7fb8", lwd = 2, lty = 2)
+
+      # Add vertical line at true p
       abline(v = p, col = "orange", lwd = 3, lty = 1)
+
+      # Highlight the observed bar
+      observed_prob <- dbinom(data$white_balls, size = s, prob = p)
+      segments(data$p_hat, 0, data$p_hat, observed_prob, lwd = 5, col = "purple")
+      points(data$p_hat, observed_prob, pch = 16, cex = 1.5, col = "purple")
 
       # Draw CI as a horizontal line segment
       ci_color <- if(data$contains_p) "#27ae60" else "#e74c3c"
       segments(data$ci_lower, 0, data$ci_upper, 0, col = ci_color, lwd = 5)
-
-      # Draw p_hat as a point
       points(data$p_hat, 0, pch = 19, col = "blue", cex = 2)
 
       legend("topright",
-             legend = c("True p", "p-hat (current)",
-                       paste0(data$conf_level, "% CI"),
+             legend = c("Exact binomial", "Normal approximation", "True p",
+                       "Observed p-hat", paste0(data$conf_level, "% CI"),
                        if(data$contains_p) "CI contains p" else "CI misses p"),
-             col = c("orange", "blue", ci_color, ci_color),
-             lwd = c(3, NA, 5, NA),
-             pch = c(NA, 19, NA, NA),
-             lty = c(1, NA, 1, NA),
-             cex = 0.9)
+             col = c("gray60", "#2c7fb8", "orange", "purple", ci_color, ci_color),
+             lwd = c(3, 2, 3, 5, 5, NA),
+             pch = c(NA, NA, NA, NA, NA, NA),
+             lty = c(1, 2, 1, 1, 1, NA),
+             cex = 0.75)
     } else {
-      # Just show the vertical line at p
-      plot(NULL, xlim = c(0, 1), ylim = c(0, 1),
-           main = "Distribution of p-hat with Current Sample",
+      # Just show the binomial distribution without highlighting
+      plot(phat, probs,
+           type = "h", lwd = 3,
+           xlim = xlim,
+           ylim = c(0, max(probs) * 1.3),
            xlab = expression(hat(p)),
-           ylab = "Density",
-           type = "n")
+           ylab = "Probability mass",
+           main = "Sampling Distribution of p-hat",
+           col = "gray60")
+
+      points(phat, probs, pch = 16, cex = 1.2, col = "gray60")
+
+      # Overlay normal approximation
+      x_range <- seq(0, 1, length.out = 500)
+      y_norm <- dnorm(x_range, mean = p, sd = se) * delta
+      lines(x_range, y_norm, col = "#2c7fb8", lwd = 2, lty = 2)
+
+      # Add vertical line at true p
       abline(v = p, col = "orange", lwd = 3, lty = 1)
-      text(0.5, 0.5, "Draw a sample to see\nthe distribution of p-hat", cex = 1.2, col = "gray50")
+
+      text(0.5, max(probs) * 0.9, "Draw a sample to see\nthe observed outcome", cex = 1.2, col = "gray50")
+
       legend("topright",
-             legend = c("True p"),
-             col = c("orange"),
-             lwd = 3, lty = 1, cex = 0.9)
+             legend = c("Exact binomial", "Normal approximation", "True p"),
+             col = c("gray60", "#2c7fb8", "orange"),
+             lwd = c(3, 2, 3),
+             lty = c(1, 2, 1),
+             cex = 0.9)
     }
   })
 
@@ -457,17 +495,25 @@ server <- function(input, output, session) {
       text(1, 1, "Draw samples to see\nhistory accumulate here", cex = 1.5, col = "gray50")
     } else {
       df_plot <- tail(sample_history(), 100)
+      rescale <- input$ex17_rescale
 
-      # Determine y-axis range based on all CI bounds
-      y_min <- min(df_plot$ci_lower, df_plot$p)
-      y_max <- max(df_plot$ci_upper, df_plot$p)
-      y_range <- y_max - y_min
+      # Determine y-axis limits based on rescale option
+      if (!is.null(rescale) && rescale) {
+        # Rescale to fit the data with some padding
+        y_min <- min(df_plot$ci_lower, df_plot$p)
+        y_max <- max(df_plot$ci_upper, df_plot$p)
+        y_range <- y_max - y_min
+        ylim <- c(y_min - 0.1*y_range, y_max + 0.1*y_range)
+      } else {
+        # Fixed y-axis from 0 to 1
+        ylim <- c(0, 1)
+      }
 
       # Create plot
       plot(NULL, xlim = c(0.5, nrow(df_plot) + 0.5),
-           ylim = c(y_min - 0.1*y_range, y_max + 0.1*y_range),
+           ylim = ylim,
            xlab = "Sample Number (most recent 100)",
-           ylab = "Value",
+           ylab = "Proportion",
            main = paste0("History of Confidence Intervals (",
                         sum(df_plot$contains_p), " out of ", nrow(df_plot),
                         " contain true p)"))
