@@ -47,7 +47,7 @@ ui <- fluidPage(
       
       p(strong("Special Rule for the Multiplication of Independent Probabilities."), " — Given the separate probabilities of two consequences having the same antecedents, \"If A, then B,\" and \"If A, then C.\" Suppose that these consequences are such that the probability of the second is equal to the probability of the consequence, \"If both A and B, then C.\" Then the product of the two given numbers is equal to the probability of the consequence, \"If A, then both B and C.\""),
       
-      p("To show the working of these rules we may examine the probabilities in regard to throwing dice. What is the probability of throwing a six with one die? The antecedent here is the event of throwing a die; the consequent, its turning up a six. As the die has six sides, all of which are turned up with equal frequency, the probability of turning up any one is 1/6. Suppose two dice are thrown, what is the probability of throwing sixes? The probability of either coming up six is obviously the same when both are thrown as when one is thrown — namely, 1/6. The probability that either will come up six when the other does is also the same as that of its coming up six whether the other does or not. The probabilities are, therefore, independent; and, by our rule, the probability that both events will happen together is the product of their several probabilities, 1/6 × 1/6. What is the probability of throwing deuce-ace? The probability that the first die will turn up ace and the second deuce is the same as the probability that both will turn up sixes — namely, 1/36; the probability that the second will turn up ace and the first deuce is likewise 1/36. These two events — first, ace; second, deuce; and, second, ace; first, deuce — are incompatible. Hence the rule for addition holds, and the probability that either will come up ace and the other deuce is 1/36 + 1/36 or 1/18."),
+      p("To show the working of these rules we may examine the probabilities in regard to throwing dice. What is the probability of throwing a six with one die? The antecedent here is the event of throwing a die; the consequent, its turning up a six. As the die has six sides, all of which are turned up with equal frequency, the probability of turning up any one is 1/6. Suppose two dice are thrown, what is the probability of throwing sixes? The probability of either coming up six is obviously the same when both are thrown as when one is thrown — namely, 1/6. The probability that either will come up six when the other does is also the same as that of its coming up six whether the other does or not. The probabilities are, therefore, independent; and, by our rule, the probability that both events will happen together is the product of their several probabilities, 1/6 × 1/6 = 1/36. What is the probability of throwing deuce-ace? The probability that the first die will turn up ace and the second deuce is the same as the probability that both will turn up sixes — namely, 1/36; the probability that the second will turn up ace and the first deuce is likewise 1/36. These two events — first, ace; second, deuce; and, second, ace; first, deuce — are incompatible. Hence the rule for addition holds, and the probability that either will come up ace and the other deuce is 1/36 + 1/36 or 1/18."),
       
       p("In this way all problems about dice, etc., may be solved. When the number of dice thrown is supposed very large, mathematics (which may be defined as the art of making groups to facilitate numeration) comes to our aid with certain devices to reduce the difficulties."),
       
@@ -59,17 +59,17 @@ ui <- fluidPage(
       p("Suppose that we have two rules of inference, such that, of all the questions to the solution of which both can be applied, the first yields correct answers to 81/100 and incorrect answers to the remaining 19/100; while the second yields correct answers to 93/100 and incorrect answers to the remaining 7/100. Suppose, further, that the two rules are entirely independent as to their truth, so that the second answers correctly 93/100 of the questions which the first answers correctly, and also 93/100 of the questions which the first answers incorrectly. Then, of all the questions to the solution of which both rules can be applied—"),
       
       div(class = "math-formula", 
-          "both answer correctly: 93/100 of 81/100 or (93 × 81) / (100 × 100);", br(),
-          "the second answers correctly and the first incorrectly: 93/100 of 19/100 or (93 × 19) / (100 × 100);", br(),
-          "the second answers incorrectly and the first correctly: 7/100 of 81/100 or (7 × 81) / (100 × 100);", br(),
-          "and both answer incorrectly: 7/100 of 19/100 or (7 × 19) / (100 × 100)."
+          "both answer correctly: (93 × 81) / (100 × 100);", br(),
+          "2nd correct, 1st incorrect: (93 × 19) / (100 × 100);", br(),
+          "2nd incorrect, 1st correct: (7 × 81) / (100 × 100);", br(),
+          "both answer incorrectly: (7 × 19) / (100 × 100)."
       ),
       
-      p("Suppose, now, that, in reference to any question, both give the same answer. Then those in reference to which their answers agree are the same as those which both answer correctly together with those which both answer falsely, or 93 × 81 / (100 × 100) + 7 × 19 / (100 × 100) of all. The proportion of those which both answer correctly out of those their answers to which agree is, therefore—"),
+      p("Suppose, now, that, in reference to any question, both give the same answer. Then those in reference to which their answers agree are the same as those which both answer correctly together with those which both answer falsely, or [(93 × 81) + (7 × 19)] / 10,000 of all. The proportion of those which both answer correctly out of those their answers to which agree is, therefore—"),
       
-      div(class = "math-formula", "(93 × 81) / ((93 × 81) + (7 × 19))"),
+      div(class = "math-formula", "(93 × 81) / [(93 × 81) + (7 × 19)]"),
       
-      p("This is, therefore, the probability that, if both modes of inference yield the same result, that result is correct. We may here conveniently make use of another mode of expression. Probability is the ratio of the favorable cases to all the cases. Instead of expressing our result in terms of this ratio, we may make use of another — the ratio of favorable to unfavorable cases. This last ratio may be called the ", em("chance"), " of an event. Then the chance of a true answer by the first mode of inference is 81/19 and by the second is 93/7 and the chance of a correct answer from both, when they agree, is 81/19 × 93/7, or the product of the chances of each singly yielding a true answer."),
+      p("This is, therefore, the probability that, if both modes of inference yield the same result, that result is correct. We may here conveniently make use of another mode of expression. Probability is the ratio of the favorable cases to all the cases. Instead of expressing our result in terms of this ratio, we may make use of another — the ratio of favorable to unfavorable cases. This last ratio may be called the ", em("chance"), " of an event. Then the chance of a true answer by the first mode of inference is 81/19 and by the second is 93/7 and the chance of a correct answer from both, when they agree, is (81/19) × (93/7), or the product of the chances of each singly yielding a true answer."),
       
       p("It will be seen that a chance is a quantity which may have any magnitude, however great. An event in whose favor there is an even chance, or 1/1, has a probability of 1/2. An argument having an even chance can do nothing toward reënforcing others, since according to the rule its combination with another would only multiply the chance of the latter by 1."),
       
@@ -93,16 +93,20 @@ ui <- fluidPage(
       p("If there be any way of enumerating the possibilities of Nature so as to make them all equal, it is the following: Suppose we had an immense granary filled with black and white balls well mixed up; and suppose each urn were filled by taking a fixed number of balls from this granary quite at random. The relative number of white balls might be anything, say one in three. In this way, we should have a distribution like that shown in the following table, where w stands for a white ball and b for a black one:"),
       
       div(class = "table-container", 
-          "wwww.
+          "Group 1 (1 set): 
+wwww.
 
+Group 2 (2 sets): 
 wwwb. wwbw. wbww. bwww.
 wwwb. wwbw. wbww. bwww.
 
+Group 3 (4 sets): 
 wwbb. wbwb. bwwb. wbbw. bwbw. bbww.
 wwbb. wbwb. bwwb. wbbw. bwbw. bbww.
 wwbb. wbwb. bwwb. wbbw. bwbw. bbww.
 wwbb. wbwb. bwwb. wbbw. bwbw. bbww.
 
+Group 4 (8 sets): 
 wbbb. bwbb. bbwb. bbbw.
 wbbb. bwbb. bbwb. bbbw.
 wbbb. bwbb. bbwb. bbbw.
@@ -112,6 +116,7 @@ wbbb. bwbb. bbwb. bbbw.
 wbbb. bwbb. bbwb. bbbw.
 wbbb. bwbb. bbwb. bbbw.
 
+Group 5 (16 sets): 
 bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb.
 bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb."
       ),
@@ -125,20 +130,13 @@ bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb."
       
       p("It is found that, if the true proportion of white balls is ", em("p"), ", and ", em("s"), " balls are drawn, then the error of the proportion obtained by the induction will be—"),
       div(class = "math-formula", 
-          "half the time within 0.477", br(),
-          "9 times out of 10 within 1.163", br(),
-          "99 times out of 100 within 1.821", br(),
-          "999 times out of 1,000 within 2.328", br(),
-          "9,999 times out of 10,000 within 2.751", br(),
-          "9,999,999,999 times out of 10,000,000,000 within 4.77"
+          "half the time within 0.477 × sqrt[2p(1-p)/s]", br(),
+          "9 times out of 10 within 1.163 × sqrt[2p(1-p)/s]", br(),
+          "99 times out of 100 within 1.821 × sqrt[2p(1-p)/s]", br(),
+          "9,999,999,999 times out of 10,000,000,000 within 4.77 × sqrt[2p(1-p)/s]"
       ),
-      p("multiplied by the square-root of 2p(1-p)/s."),
       
-      p("The use of this may be illustrated by an example. By the census of 1870, it appears that the proportion of males among native white children under one year old was 0.5082, while among colored children of the same age the proportion was only 0.4977. The difference is 0.0105, or about one in a 100. Can this be attributed to chance? Here ", em("p"), " may be taken at 1/2; hence 2p(1-p) is also 1/2. The number of white children counted was near 1,000,000; hence the fraction whose square-root is to be taken is about 1/2,000,000. The root is about 1/1,400, and this multiplied by 0.477 gives about 0.0003 as the probable error. For black children (about 150,000), the error is 0.0008. We see that the actual discrepancy is ten times the sum of these, and such a result would happen only once out of 10,000,000,000 censuses, in the long run."),
-      
-      p("It may be remarked that when the real value of the probability sought inductively is either very large or very small, the reasoning is more secure. Thus, suppose there were in reality one white ball in 100 in a certain urn, and we were to judge of the number by 100 drawings. The probability of drawing no white ball would be 366 1000; that of drawing one white ball would be 370 1000; that of drawing two would be 185 1000; that of drawing three would be 1000; that of 61 drawing four would be 15 1000; that of drawing five would be only 3 etc. Thus we should be tolerably certain of not 1000 being in error by more than one ball in 100."),
-      
-      p("It appears, then, that in one sense we can, and in another we cannot, determine the probability of synthetic inference."),
+      p("The use of this may be illustrated by an example. By the census of 1870, it appears that the proportion of males among native white children under one year old was 0.5082, while among colored children of the same age the proportion was only 0.4977. The difference is 0.0105, or about one in a 100. Can this be attributed to chance? Here ", em("p"), " may be taken at 1/2; hence 2p(1-p) is also 1/2. The number of white children counted was near 1,000,000; hence the fraction whose square-root is to be taken is about 1/2,000,000. The root is about 1/1400, and this multiplied by 0.477 gives about 0.0003 as the probable error. For black children (about 150,000), the error is 0.0008. We see that the actual discrepancy is ten times the sum of these, and such a result would happen only once out of 10,000,000,000 censuses."),
       
       p("When I reason in this way:"),
       div(class = "syllogism", 
@@ -152,8 +150,7 @@ bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb."
           p("But these were all atrocious liars,"),
           p("Therefore, pretty much all Cretans must have been liars;")
       ),
-      p("I do not in the least know how often such reasoning would carry me right. On the other hand, what I do know is that some definite proportion of Cretans must have been liars, and that this proportion can be probably approximated to by an induction from five or six instances. Even in the worst case for the probability of such an inference, that in which about half the Cretans are liars, the ratio so obtained would probably not be in error by more than 1 6. So much I know;"), 
-    
+      p("I do not in the least know how often such reasoning would carry me right. What I do know is that some definite proportion of Cretans must have been liars, and that this proportion can be probably approximated to by an induction."),
       
       div(class = "section-num", "V."),
       p("Late in the last century, Immanuel Kant asked the question, \"How are synthetical judgments a priori possible?\" By synthetical judgments he meant such as assert positive fact and are not mere affairs of arrangement. But before asking that question he ought to have asked the more general one, \"How are any synthetical judgments at all possible?\" How is it that a man can observe one fact and straightway pronounce judgment concerning another different fact not involved in the first?"),
@@ -161,8 +158,6 @@ bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb."
       p("This is a strange paradox; the Abbé Gratry says it is a miracle, and that every true induction is an immediate inspiration from on high. I respect this explanation because it shows an appreciation of the depth of the problem. At the same time, I do not accept it, because an explanation should tell how a thing is done."),
       
       p("Synthetic inference is founded upon a classification of facts, not according to their characters, but according to the manner of obtaining them. Its rule is, that a number of facts obtained in a given way will in general more or less resemble other facts obtained in the same way; or, experiences whose conditions are the same will have the same general characters. In the case of analytic inference we know the probability of our conclusion; but in the case of synthetic inferences we only know the degree of trustworthiness of our proceeding."),
-      
-      p("When we draw a deductive or analytic conclusion, our rule of inference is that facts of a certain general character are either invariably or in a certain proportion of cases accompanied by facts of another general character. Then our premise being a fact of the former class, we infer withc ertainty or with the appropriate degree of probability the existence of a fact of the second class. But the rule for synthetic inference is of a different kind. When we sample a bag of beans we do not in the least assume that the fact of some beans being purple involves the necessity or even the probability of other beans being so. On the contrary, the conceptualistic method of treating probabilities, which really amounts simply to the deductive treatment of them, when rightly carried out leads to the result that a synthetic inference has just an even chance in its favor, or in other words is absolutely worthless. The color of one bean is entirely independent of that of another. But synthetic inference is founded upon a classification of facts, not according to their characters, but according to the manner of obtaining them. Its rule is, that a number of facts obtained in a given way will in general more or less resemble other facts obtained in the same way; or, experiences whose conditions are the same will have the same general characters."),
       
       p("Though a synthetic inference cannot by any means be reduced to deduction, yet that the rule of induction will hold good in the long run may be deduced from the principle that reality is only the object of the final opinion to which sufficient investigation would lead. That belief gradually tends to fix itself under the influence of inquiry is, indeed, one of the facts with which logic sets out."),
       

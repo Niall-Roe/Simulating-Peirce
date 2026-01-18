@@ -234,7 +234,13 @@ ui <- fluidPage(
 
     p("To show the working of these rules we may examine the probabilities in regard to throwing dice. What is the probability of throwing a six with one die? The antecedent here is the event of throwing a die; the consequent, its turning up a six. As the die has six sides, all of which are turned up with equal frequency, the probability of turning up any one is 1/6. Suppose two dice are thrown, what is the probability of throwing sixes? The probability of either coming up six is obviously the same when both are thrown as when one is thrown—namely, 1/6. The probability that either will come up six when the other does is also the same as that of its coming up six whether the other does or not. The probabilities are, therefore, independent; and, by our rule, the probability that both events will happen together is the product of their several probabilities, 1/6 × 1/6. What is the probability of throwing deuce-ace? The probability that the first die will turn up ace and the second deuce is the same as the probability that both will turn up sixes—namely, 1/36; the probability that the second will turn up ace and the first deuce is likewise 1/36; these two events—first, ace; second, deuce; and, second, ace; first, deuce—are incompatible. Hence the rule for addition holds, and the probability that either will come up ace and the other deuce is 1/36 + 1/36, or 1/18."),
 
-    p("In this way all problems about dice, etc., may be solved. When the number of dice thrown is supposed very large, mathematics (which may be defined as the art of making groups to facilitate numeration) comes to our aid with certain devices to reduce the difficulties."),
+    p(span(class = "example-trigger", id = "dice-trigger",
+           onclick = "Shiny.setInputValue('toggle_dice', Math.random());",
+           "In this way all problems about dice, etc., may be solved."), " When the number of dice thrown is supposed very large, mathematics (which may be defined as the art of making groups to facilitate numeration) comes to our aid with certain devices to reduce the difficulties."),
+
+    div(id = "example-dice", class = "example-container", style = "display: none;",
+        uiOutput("dice_ui")
+    ),
 
     div(class = "section-number", "II."),
 
@@ -242,7 +248,13 @@ ui <- fluidPage(
 
     p("The great difference between the two analyses is, that the conceptualists refer probability to an event, while the materialists make it the ratio of frequency of events of a species to those of a genus over that species, thus giving it two terms instead of one. The opposition may be made to appear as follows:"),
 
-    p("Suppose that we have two rules of inference, such that, of all the questions to the solution of which both can be applied, the first yields correct answers to 81/100, and incorrect answers to the remaining 19/100; while the second yields correct answers to 93/100, and incorrect answers to the remaining 7/100 Suppose, further, that the two rules are entirely independent as to their truth, so that the second answers correctly the same proportion of the questions which the first answers correctly, and also the same proportion of the questions which the first answers incorrectly, and answers incorrectly the remaining proportion of the questions which the first answers correctly, and also the remaining proportion of the questions which the first answers incorrectly."),
+    p(span(class = "example-trigger", id = "inference-trigger",
+           onclick = "Shiny.setInputValue('toggle_inference', Math.random());",
+           "Suppose that we have two rules of inference,"), " such that, of all the questions to the solution of which both can be applied, the first yields correct answers to 81/100, and incorrect answers to the remaining 19/100; while the second yields correct answers to 93/100, and incorrect answers to the remaining 7/100 Suppose, further, that the two rules are entirely independent as to their truth, so that the second answers correctly the same proportion of the questions which the first answers correctly, and also the same proportion of the questions which the first answers incorrectly, and answers incorrectly the remaining proportion of the questions which the first answers correctly, and also the remaining proportion of the questions which the first answers incorrectly."),
+
+    div(id = "example-inference", class = "example-container", style = "display: none;",
+        uiOutput("inference_ui")
+    ),
 
     p("Then, of all the questions to the solution of which both rules can be applied: both answer correctly a certain proportion; the second answers correctly and the first incorrectly a certain proportion; the second answers incorrectly and the first correctly a certain proportion; and both answer incorrectly a certain proportion."),
 
@@ -358,45 +370,128 @@ server <- function(input, output, session) {
     matched <- rep(FALSE, nrow(cells))
 
     if (consequent_rule$type == "card") {
-      target <- consequent_rule$target
+      if (!is.null(consequent_rule$operator)) {
+        operator <- consequent_rule$operator
+        rank_val <- consequent_rule$rank
+        property <- consequent_rule$property
+        suit_val <- if(is.null(consequent_rule$suit)) "any" else consequent_rule$suit
 
-      for (i in 1:nrow(cells)) {
-        suit <- cells$suit[i]
-        rank <- cells$rank[i]
+        rank_order <- c("A" = 14, "2" = 2, "3" = 3, "4" = 4, "5" = 5, "6" = 6,
+                        "7" = 7, "8" = 8, "9" = 9, "10" = 10, "J" = 11, "Q" = 12, "K" = 13)
 
-        matched[i] <- if (target == "red") {
-          suit %in% c("H", "D")
-        } else if (target == "ace_spades") {
-          suit == "S" && rank == "A"
-        } else if (target == "even") {
-          rank %in% c("2", "4", "6", "8", "10")
-        } else if (target == "face") {
-          rank %in% c("J", "Q", "K")
-        } else if (target == "less_10") {
-          rank %in% c("2", "3", "4", "5", "6", "7", "8", "9")
-        } else if (target == "higher_8") {
-          rank %in% c("9", "10", "J", "Q", "K", "A")
-        } else {
-          FALSE
+        for (i in 1:nrow(cells)) {
+          suit <- cells$suit[i]
+          rank <- cells$rank[i]
+
+          suit_match <- if (suit_val == "any") {
+            TRUE
+          } else if (suit_val == "red") {
+            suit %in% c("H", "D")
+          } else if (suit_val == "black") {
+            suit %in% c("C", "S")
+          } else {
+            suit == suit_val
+          }
+
+          if (!suit_match) {
+            matched[i] <- FALSE
+            next
+          }
+
+          matched[i] <- if (operator == "any") {
+            if (property == "even") rank %in% c("2", "4", "6", "8", "10")
+            else if (property == "odd") rank %in% c("A", "3", "5", "7", "9")
+            else if (property == "face") rank %in% c("J", "Q", "K")
+            else if (property == "non_face") !(rank %in% c("J", "Q", "K"))
+            else if (property == "any_card") TRUE
+            else FALSE
+          } else if (operator == "exactly") {
+            rank == rank_val
+          } else if (operator == "higher_than") {
+            rank_order[rank] > rank_order[rank_val]
+          } else if (operator == "lower_than") {
+            rank_order[rank] < rank_order[rank_val]
+          } else if (operator == "anything_other_than") {
+            if (!is.null(property)) {
+              if (property == "even") !(rank %in% c("2", "4", "6", "8", "10"))
+              else if (property == "odd") !(rank %in% c("A", "3", "5", "7", "9"))
+              else if (property == "face") !(rank %in% c("J", "Q", "K"))
+              else FALSE
+            } else rank != rank_val
+          } else FALSE
+        }
+      } else {
+        target <- consequent_rule$target
+        for (i in 1:nrow(cells)) {
+          suit <- cells$suit[i]
+          rank <- cells$rank[i]
+          matched[i] <- if (target == "red") suit %in% c("H", "D")
+          else if (target == "ace_spades") suit == "S" && rank == "A"
+          else if (target == "even") rank %in% c("2", "4", "6", "8", "10")
+          else if (target == "face") rank %in% c("J", "Q", "K")
+          else if (target == "less_10") rank %in% c("2", "3", "4", "5", "6", "7", "8", "9")
+          else if (target == "higher_8") rank %in% c("9", "10", "J", "Q", "K", "A")
+          else FALSE
         }
       }
     } else if (consequent_rule$type == "die") {
       target <- consequent_rule$target
-      for (i in 1:nrow(cells)) {
-        matched[i] <- cells$label[i] == as.character(target)
-      }
+      for (i in 1:nrow(cells)) matched[i] <- cells$label[i] == as.character(target)
     } else if (consequent_rule$type == "dice_sum") {
       target <- consequent_rule$target
-      for (i in 1:nrow(cells)) {
-        matched[i] <- (cells$die1[i] + cells$die2[i]) == target
-      }
+      for (i in 1:nrow(cells)) matched[i] <- (cells$die1[i] + cells$die2[i]) == target
     }
 
     return(matched)
   }
 
+  # Build UI for flexible consequent selection
+  build_consequent_ui <- function(id_prefix, label = "Consequent", css_class = "hl-consequent") {
+    div(
+      selectInput(paste0(id_prefix, "_operator"), span(class = css_class, paste0(label, " - Operator:")),
+                  choices = c("Exactly" = "exactly", "Higher than" = "higher_than",
+                            "Lower than" = "lower_than", "Any" = "any",
+                            "Anything other than" = "anything_other_than"),
+                  selected = "exactly"),
+      conditionalPanel(
+        condition = sprintf("input['%s_operator'] == 'exactly' || input['%s_operator'] == 'higher_than' || input['%s_operator'] == 'lower_than' || input['%s_operator'] == 'anything_other_than'",
+                           id_prefix, id_prefix, id_prefix, id_prefix),
+        selectInput(paste0(id_prefix, "_rank"), "Rank:",
+                   choices = c("A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"), selected = "A")
+      ),
+      conditionalPanel(
+        condition = sprintf("input['%s_operator'] == 'any' || input['%s_operator'] == 'anything_other_than'", id_prefix, id_prefix),
+        selectInput(paste0(id_prefix, "_property"), "Property:",
+                   choices = c("Any card" = "any_card", "Even" = "even", "Odd" = "odd",
+                             "Face" = "face", "Non-face" = "non_face"),
+                   selected = "any_card")
+      ),
+      selectInput(paste0(id_prefix, "_suit"), "Suit:",
+                 choices = c("Any suit" = "any",
+                           "Red (Hearts or Diamonds)" = "red",
+                           "Black (Clubs or Spades)" = "black",
+                           "Hearts" = "H",
+                           "Diamonds" = "D",
+                           "Clubs" = "C",
+                           "Spades" = "S"),
+                 selected = "any")
+    )
+  }
+
+  # Get consequent rule from inputs
+  get_consequent_rule <- function(input, id_prefix) {
+    operator <- input[[paste0(id_prefix, "_operator")]]
+    rule <- list(type = "card", operator = operator, suit = input[[paste0(id_prefix, "_suit")]])
+    if (operator %in% c("exactly", "higher_than", "lower_than", "anything_other_than")) {
+      rule$rank <- input[[paste0(id_prefix, "_rank")]]
+    } else {
+      rule$property <- input[[paste0(id_prefix, "_property")]]
+    }
+    return(rule)
+  }
+
   # Render grid visualization
-  render_grid_plot <- function(grid, matched_cells, color_scheme = "single", title = "") {
+  render_grid_plot <- function(grid, matched_cells, color_scheme = "single", title = "", matched_cells_2 = NULL) {
     cells <- grid$cells
     dims <- grid$dims
 
@@ -408,17 +503,66 @@ server <- function(input, output, session) {
       title(title, cex.main = 1.1, font.main = 2)
     }
 
+    # Draw background shapes for antecedent and consequent spaces
+    if (color_scheme == "single") {
+      # Antecedent space (all cells) - light yellow background
+      rect(0.5, 0.5, dims["x"] + 0.5, dims["y"] + 0.5,
+           col = rgb(1, 0.95, 0.8, alpha = 0.3), border = NA)
+
+      # Consequent space (matched cells) - light blue background
+      if (sum(matched_cells) > 0) {
+        matched_coords <- cells[matched_cells, ]
+        x_range <- range(matched_coords$x)
+        y_range <- range(matched_coords$y)
+        rect(x_range[1] - 0.45, y_range[1] - 0.45,
+             x_range[2] + 0.45, y_range[2] + 0.45,
+             col = rgb(0.82, 0.93, 0.96, alpha = 0.4), border = NA)
+      }
+    } else if (color_scheme == "double" && !is.null(matched_cells_2)) {
+      # Antecedent space - light yellow
+      rect(0.5, 0.5, dims["x"] + 0.5, dims["y"] + 0.5,
+           col = rgb(1, 0.95, 0.8, alpha = 0.3), border = NA)
+
+      # Consequent B space - light orange
+      if (sum(matched_cells) > 0) {
+        matched_b <- cells[matched_cells, ]
+        x_range_b <- range(matched_b$x)
+        y_range_b <- range(matched_b$y)
+        rect(x_range_b[1] - 0.45, y_range_b[1] - 0.45,
+             x_range_b[2] + 0.45, y_range_b[2] + 0.45,
+             col = rgb(1, 0.9, 0.87, alpha = 0.5), border = NA)
+      }
+
+      # Consequent C space - light blue
+      if (sum(matched_cells_2) > 0) {
+        matched_c <- cells[matched_cells_2, ]
+        x_range_c <- range(matched_c$x)
+        y_range_c <- range(matched_c$y)
+        rect(x_range_c[1] - 0.45, y_range_c[1] - 0.45,
+             x_range_c[2] + 0.45, y_range_c[2] + 0.45,
+             col = rgb(0.87, 0.92, 0.97, alpha = 0.5), border = NA)
+      }
+    }
+
     # Draw cells
     count_match <- sum(matched_cells)
+    count_match_2 <- if (!is.null(matched_cells_2)) sum(matched_cells_2) else 0
+    count_both <- if (!is.null(matched_cells_2)) sum(matched_cells & matched_cells_2) else 0
+
     for (i in 1:nrow(cells)) {
       x <- cells$x[i]
       y <- cells$y[i]
 
       col <- if (color_scheme == "single") {
         if (matched_cells[i]) "#d4edda" else "white"
-      } else {
-        "white" # Will be extended for multi-color schemes
-      }
+      } else if (color_scheme == "double") {
+        if (!is.null(matched_cells_2)) {
+          if (matched_cells[i] && matched_cells_2[i]) "#c8b2d8"
+          else if (matched_cells[i]) "#fee5d9"
+          else if (matched_cells_2[i]) "#deebf7"
+          else "white"
+        } else "white"
+      } else "white"
 
       rect(x - 0.4, y - 0.4, x + 0.4, y + 0.4, col = col, border = "black", lwd = 0.5)
       text(x, y, cells$label[i], cex = 0.6)
@@ -434,11 +578,22 @@ server <- function(input, output, session) {
 
     # Legend
     total_cells <- nrow(cells)
-    prob <- sum(cells$prob[matched_cells])
-    text(dims["x"]/2, -0.3,
-         paste0("Green cells match consequent: ", count_match, "/", total_cells,
-                " = P(A → C) = ", round(prob, 4)),
-         cex = 0.9)
+    if (color_scheme == "single") {
+      prob <- sum(cells$prob[matched_cells])
+      text(dims["x"]/2, -0.3,
+           paste0("Green cells match consequent: ", count_match, "/", total_cells,
+                  " = P(A → C) = ", round(prob, 4)),
+           cex = 0.9)
+    } else if (color_scheme == "double" && !is.null(matched_cells_2)) {
+      p_b <- sum(cells$prob[matched_cells])
+      p_c <- sum(cells$prob[matched_cells_2])
+      p_both <- sum(cells$prob[matched_cells & matched_cells_2])
+      text(dims["x"]/2, -0.5,
+           paste0("B: ", count_match, " | C: ", count_match_2, " | B∧C: ", count_both,
+                  " | P(A→B)×P(A→C) = ", round(p_b * p_c, 3),
+                  " vs P(A→[B∧C]) = ", round(p_both, 3)),
+           cex = 0.85)
+    }
   }
 
   # TODO: Implement Hypothetical/Empirical modes for all examples
@@ -481,15 +636,7 @@ server <- function(input, output, session) {
                                             "Well-shuffled face cards (J,Q,K)" = "shuffled_face"),
                                   selected = "shuffled_standard"),
 
-                      selectInput("ex1_target",
-                                  span(class = "hl-consequent", "Consequent - The card is:"),
-                                  choices = c("Ace of Spades" = "ace_spades",
-                                            "Red (hearts or diamonds)" = "red",
-                                            "Face card (J,Q,K)" = "face",
-                                            "Even (2,4,6,8,10)" = "even",
-                                            "Less than 10 (2-9)" = "less_10",
-                                            "Higher than 8 (9,10,J,Q,K,A)" = "higher_8"),
-                                  selected = "red")
+                      build_consequent_ui("ex1", "Consequent - The card is")
                   )
                 ),
                 column(6,
@@ -521,144 +668,377 @@ server <- function(input, output, session) {
   })
 
   output$ex1_formula_display <- renderUI({
-    req(input$ex1_deck_type, input$ex1_target)
+    req(input$ex1_deck_type, input$ex1_operator)
 
-    deck_type <- input$ex1_deck_type
-    target <- input$ex1_target
+    grid <- create_grid("card_deck", list(deck_type = input$ex1_deck_type))
+    rule <- get_consequent_rule(input, "ex1")
+    matched <- evaluate_consequent(grid, rule)
 
-    # Define deck properties based on type
-    if (deck_type == "shuffled_face") {
-      suits <- rep(c("hearts", "diamonds", "clubs", "spades"), each = 3)
-      ranks <- rep(c("J", "Q", "K"), 4)
-      deck_size <- 12
-    } else if (deck_type == "shuffled_piquet") {
-      suits <- rep(c("hearts", "diamonds", "clubs", "spades"), each = 8)
-      ranks <- rep(c("7", "8", "9", "10", "J", "Q", "K", "A"), 4)
-      deck_size <- 32
-    } else {
-      suits <- rep(c("hearts", "diamonds", "clubs", "spades"), each = 13)
-      ranks <- rep(c("A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"), 4)
-      deck_size <- 52
-    }
-
-    card_matches <- function(suit, rank, target) {
-      if (target == "red") return(suit %in% c("hearts", "diamonds"))
-      if (target == "ace_spades") return(suit == "spades" && rank == "A")
-      if (target == "even") return(rank %in% c("2", "4", "6", "8", "10"))
-      if (target == "face") return(rank %in% c("J", "Q", "K"))
-      if (target == "less_10") return(rank %in% c("2", "3", "4", "5", "6", "7", "8", "9"))
-      if (target == "higher_8") return(rank %in% c("9", "10", "J", "Q", "K", "A"))
-      return(FALSE)
-    }
-
-    # Calculate theoretical probability
-    if (deck_type == "new_standard") {
-      successes <- if (target == "ace_spades") 1 else 0
-      total <- 1
-    } else {
-      successes <- sum(sapply(1:deck_size, function(i) card_matches(suits[i], ranks[i], target)))
-      total <- deck_size
-    }
+    successes <- sum(matched)
+    total <- nrow(grid$cells)
 
     div(style = "text-align: center; font-size: 18px; margin-top: 20px;",
-      div(style = "margin-bottom: 10px;", "P(A → C) ="),
-      div(style = "border-top: 2px solid black; display: inline-block; padding: 5px 20px;",
-        div(style = "margin-bottom: 5px;",
-          span(style = "background-color: #d4edda; padding: 2px 6px; border-radius: 3px; font-weight: bold;",
-               paste0("#(A ∧ C) = ", successes))
-        ),
-        div(style = "border-bottom: 2px solid black; padding-bottom: 5px;"),
-        div(style = "margin-top: 5px;",
-          span(style = "background-color: #fff3cd; padding: 2px 6px; border-radius: 3px; font-weight: bold;",
-               paste0("#A = ", total))
-        )
-      ),
-      div(style = "margin-top: 10px; font-size: 20px; font-weight: bold;",
-        paste0("= ", if(total > 0) round(successes/total, 4) else "0"))
+      div(style = "margin-bottom: 10px; font-weight: bold;",
+        paste0("P(A → C) = ", successes, "/", total, " = ", round(successes/total, 4)))
     )
   })
 
   output$ex1_grid <- renderPlot({
-    req(input$ex1_deck_type, input$ex1_target)
+    req(input$ex1_deck_type, input$ex1_operator)
 
-    # Use generic framework
     grid <- create_grid("card_deck", list(deck_type = input$ex1_deck_type))
-    matched <- evaluate_consequent(grid, list(type = "card", target = input$ex1_target))
+    rule <- get_consequent_rule(input, "ex1")
+    matched <- evaluate_consequent(grid, rule)
     render_grid_plot(grid, matched, "single", "Possibility Space: Each Card in the Deck")
   })
 
   output$ex1_calc <- renderText({
-    req(input$ex1_deck_type, input$ex1_target)
+    req(input$ex1_deck_type, input$ex1_operator)
 
-    deck_type <- input$ex1_deck_type
-    target <- input$ex1_target
-
-    # Set up antecedent description
-    antecedent_desc <- if (deck_type == "new_standard") {
+    antecedent_desc <- if (input$ex1_deck_type == "new_standard") {
       "Draw top card from NEW STANDARD deck (Ace♠ on top)"
-    } else if (deck_type == "shuffled_face") {
+    } else if (input$ex1_deck_type == "shuffled_face") {
       "Draw top card from WELL-SHUFFLED FACE CARD deck (J,Q,K)"
-    } else if (deck_type == "shuffled_piquet") {
+    } else if (input$ex1_deck_type == "shuffled_piquet") {
       "Draw top card from WELL-SHUFFLED PIQUET PACK (7-A)"
     } else {
       "Draw top card from WELL-SHUFFLED STANDARD deck"
     }
 
-    # Set up consequent description
-    consequent_desc <- switch(target,
-      "red" = "Card is RED (hearts or diamonds)",
-      "ace_spades" = "Card is ACE OF SPADES",
-      "even" = "Card is EVEN (2,4,6,8,10)",
-      "face" = "Card is FACE CARD (J,Q,K)",
-      "less_10" = "Card is LESS THAN 10 (2-9)",
-      "higher_8" = "Card is HIGHER THAN 8 (9,10,J,Q,K,A)",
-      "Unknown"
-    )
+    grid <- create_grid("card_deck", list(deck_type = input$ex1_deck_type))
+    rule <- get_consequent_rule(input, "ex1")
+    matched <- evaluate_consequent(grid, rule)
 
-    # Define deck
-    if (deck_type == "shuffled_face") {
-      suits <- rep(c("hearts", "diamonds", "clubs", "spades"), each = 3)
-      ranks <- rep(c("J", "Q", "K"), 4)
-      deck_size <- 12
-    } else if (deck_type == "shuffled_piquet") {
-      suits <- rep(c("hearts", "diamonds", "clubs", "spades"), each = 8)
-      ranks <- rep(c("7", "8", "9", "10", "J", "Q", "K", "A"), 4)
-      deck_size <- 32
-    } else {
-      suits <- rep(c("hearts", "diamonds", "clubs", "spades"), each = 13)
-      ranks <- rep(c("A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"), 4)
-      deck_size <- 52
-    }
-
-    card_matches <- function(suit, rank, target) {
-      if (target == "red") return(suit %in% c("hearts", "diamonds"))
-      if (target == "ace_spades") return(suit == "spades" && rank == "A")
-      if (target == "even") return(rank %in% c("2", "4", "6", "8", "10"))
-      if (target == "face") return(rank %in% c("J", "Q", "K"))
-      if (target == "less_10") return(rank %in% c("2", "3", "4", "5", "6", "7", "8", "9"))
-      if (target == "higher_8") return(rank %in% c("9", "10", "J", "Q", "K", "A"))
-      return(FALSE)
-    }
-
-    # Calculate theoretical
-    if (deck_type == "new_standard") {
-      theoretical_count <- if (target == "ace_spades") 1 else 0
-      theoretical_prob <- if (target == "ace_spades") 1.0 else 0.0
-    } else {
-      theoretical_count <- sum(sapply(1:deck_size, function(i) card_matches(suits[i], ranks[i], target)))
-      theoretical_prob <- theoretical_count / deck_size
-    }
+    successes <- sum(matched)
+    total <- nrow(grid$cells)
+    prob <- successes / total
 
     paste0(
       "ANTECEDENT: ", antecedent_desc, "\n",
-      "CONSEQUENT: ", consequent_desc, "\n\n",
-      "CONSEQUENCE: \"IF ", antecedent_desc, ", THEN ", consequent_desc, "\"\n\n",
+      "CONSEQUENT: [See selections above]\n\n",
+      "CONSEQUENCE: \"IF ", antecedent_desc, ", THEN [consequent]\"\n\n",
       "THEORETICAL PROBABILITY:\n",
-      "  - Cards in deck: ", deck_size, "\n",
-      "  - Cards matching consequent: ", theoretical_count, "\n",
-      "  - P(A → C) = ", theoretical_count, " / ", deck_size, " = ", round(theoretical_prob, 4), "\n\n",
+      "  P(A → C) = ", successes, " / ", total, " = ", round(prob, 4), "\n\n",
       "NOTE: Probability belongs to the CONSEQUENCE (the arrow),\n",
       "not to individual facts. There is no P(E), only P(A → C)."
+    )
+  })
+
+  # Dice Example
+  observeEvent(input$toggle_dice, {
+    toggle("example-dice")
+
+    if (is.null(input$dice_initialized)) {
+      output$dice_ui <- renderUI({
+        div(
+          div(class = "example-header",
+              onclick = "this.classList.toggle('collapsed'); $('#dice-content').toggle();",
+              "Interactive Example: Peirce's Dice Problems"),
+          div(id = "dice-content", class = "example-content",
+              fluidRow(
+                column(6,
+                  div(class = "control-panel",
+                      selectInput("dice_mode",
+                                 "Select Mode:",
+                                 choices = c("Addition Rule (Deuce-Ace)" = "add",
+                                           "Multiplication Rule (Double Sixes)" = "multiply",
+                                           "Custom (Choose Your Own)" = "custom"),
+                                 selected = "add"),
+
+                      conditionalPanel(
+                        condition = "input.dice_mode == 'add'",
+                        p(strong("Addition Rule Example:")),
+                        p("\"What is the probability of throwing deuce-ace?\""),
+                        p("Two incompatible ways:", tags$ul(
+                          tags$li("First die = Ace (1), Second die = Deuce (2)"),
+                          tags$li("First die = Deuce (2), Second die = Ace (1)")
+                        ))
+                      ),
+
+                      conditionalPanel(
+                        condition = "input.dice_mode == 'multiply'",
+                        p(strong("Multiplication Rule Example:")),
+                        p("\"What is the probability of throwing double sixes?\""),
+                        p("Two independent events:", tags$ul(
+                          tags$li("First die = 6"),
+                          tags$li("Second die = 6")
+                        ))
+                      ),
+
+                      conditionalPanel(
+                        condition = "input.dice_mode == 'custom'",
+                        p(strong("Custom Mode:")),
+                        p("Select the values you want to highlight:"),
+                        fluidRow(
+                          column(6,
+                            selectInput("dice_custom_die1",
+                                       span(class = "hl-event-a", "First Die:"),
+                                       choices = c("Any" = "any", "1" = "1", "2" = "2",
+                                                 "3" = "3", "4" = "4", "5" = "5", "6" = "6"),
+                                       selected = "any")
+                          ),
+                          column(6,
+                            selectInput("dice_custom_die2",
+                                       span(class = "hl-event-b", "Second Die:"),
+                                       choices = c("Any" = "any", "1" = "1", "2" = "2",
+                                                 "3" = "3", "4" = "4", "5" = "5", "6" = "6"),
+                                       selected = "any")
+                          )
+                        )
+                      )
+                  )
+                ),
+                column(6,
+                  div(class = "plot-container",
+                      plotOutput("dice_grid", height = "300px")
+                  )
+                )
+              ),
+
+              div(class = "formula", verbatimTextOutput("dice_calc"))
+          )
+        )
+      })
+      updateTextInput(session, "dice_initialized", value = "1")
+    }
+  })
+
+  output$dice_grid <- renderPlot({
+    req(input$dice_mode)
+
+    grid <- create_grid("two_dice", list())
+
+    if (input$dice_mode == "add") {
+      # Deuce-ace: (1,2) or (2,1)
+      matched <- (grid$cells$die1 == 1 & grid$cells$die2 == 2) |
+                 (grid$cells$die1 == 2 & grid$cells$die2 == 1)
+    } else if (input$dice_mode == "multiply") {
+      # Double sixes: (6,6)
+      matched <- (grid$cells$die1 == 6 & grid$cells$die2 == 6)
+    } else {
+      # Custom mode
+      req(input$dice_custom_die1, input$dice_custom_die2)
+      die1_val <- input$dice_custom_die1
+      die2_val <- input$dice_custom_die2
+
+      matched <- rep(TRUE, nrow(grid$cells))
+      if (die1_val != "any") {
+        matched <- matched & (grid$cells$die1 == as.numeric(die1_val))
+      }
+      if (die2_val != "any") {
+        matched <- matched & (grid$cells$die2 == as.numeric(die2_val))
+      }
+    }
+
+    render_grid_plot(grid, matched, "single", "Two Dice: All Possible Outcomes")
+  })
+
+  output$dice_calc <- renderText({
+    req(input$dice_mode)
+
+    if (input$dice_mode == "add") {
+      paste0(
+        "ADDITION RULE (Incompatible Events)\n\n",
+        "Question: What is the probability of throwing deuce-ace?\n\n",
+        "Event B: First die = 1, Second die = 2\n",
+        "  P(A → B) = 1/36 = ", round(1/36, 4), "\n\n",
+        "Event C: First die = 2, Second die = 1\n",
+        "  P(A → C) = 1/36 = ", round(1/36, 4), "\n\n",
+        "These are INCOMPATIBLE (can't both happen).\n",
+        "By the Addition Rule:\n",
+        "  P(A → [B or C]) = P(A → B) + P(A → C)\n",
+        "  P(deuce-ace) = 1/36 + 1/36 = 2/36 = 1/18 = ", round(2/36, 4), "\n\n",
+        "Peirce's words: \"these two events—first, ace; second, deuce;\n",
+        "and, second, ace; first, deuce—are incompatible. Hence the rule\n",
+        "for addition holds, and the probability that either will come up\n",
+        "ace and the other deuce is 1/36 + 1/36, or 1/18.\""
+      )
+    } else if (input$dice_mode == "multiply") {
+      paste0(
+        "MULTIPLICATION RULE (Independent Events)\n\n",
+        "Question: What is the probability of throwing double sixes?\n\n",
+        "Event B: First die = 6\n",
+        "  P(A → B) = 6/36 = 1/6 = ", round(1/6, 4), "\n\n",
+        "Event C: Second die = 6\n",
+        "  P(A → C) = 6/36 = 1/6 = ", round(1/6, 4), "\n\n",
+        "These are INDEPENDENT (one doesn't affect the other).\n",
+        "By the Multiplication Rule:\n",
+        "  P(A → [B and C]) = P(A → B) × P(A → C)\n",
+        "  P(double sixes) = 1/6 × 1/6 = 1/36 = ", round(1/36, 4), "\n\n",
+        "Peirce's words: \"the probability that both events will happen\n",
+        "together is the product of their several probabilities, 1/6 × 1/6.\""
+      )
+    } else {
+      # Custom mode
+      req(input$dice_custom_die1, input$dice_custom_die2)
+      die1_val <- input$dice_custom_die1
+      die2_val <- input$dice_custom_die2
+
+      grid <- create_grid("two_dice", list())
+      matched <- rep(TRUE, nrow(grid$cells))
+      if (die1_val != "any") {
+        matched <- matched & (grid$cells$die1 == as.numeric(die1_val))
+      }
+      if (die2_val != "any") {
+        matched <- matched & (grid$cells$die2 == as.numeric(die2_val))
+      }
+
+      count <- sum(matched)
+      total <- nrow(grid$cells)
+
+      die1_desc <- if (die1_val == "any") "Any value" else paste0("Value = ", die1_val)
+      die2_desc <- if (die2_val == "any") "Any value" else paste0("Value = ", die2_val)
+
+      paste0(
+        "CUSTOM MODE\n\n",
+        "First Die: ", die1_desc, "\n",
+        "Second Die: ", die2_desc, "\n\n",
+        "Matching outcomes: ", count, " / ", total, "\n",
+        "Probability: ", count, "/", total, " = ", round(count/total, 4), "\n\n",
+        if (die1_val == "any" && die2_val == "any") {
+          "All outcomes match (probability = 1.0000)"
+        } else if (die1_val != "any" && die2_val != "any") {
+          paste0("Specific outcome: (", die1_val, ", ", die2_val, ")\n",
+                 "This is a single outcome with probability 1/36 = ", round(1/36, 4))
+        } else {
+          paste0("One die fixed, one die varies.\n",
+                 "Probability = 6/36 = 1/6 = ", round(1/6, 4))
+        }
+      )
+    }
+  })
+
+  # Inference Rules Example
+  observeEvent(input$toggle_inference, {
+    toggle("example-inference")
+
+    if (is.null(input$inference_initialized)) {
+      output$inference_ui <- renderUI({
+        div(
+          div(class = "example-header",
+              onclick = "this.classList.toggle('collapsed'); $('#inference-content').toggle();",
+              "Interactive Example: Two Methods of Inference"),
+          div(id = "inference-content", class = "example-content",
+              p(strong("Question:"), " Is there a bean under this thimble?"),
+              p("We have two methods for testing this, and we want to know how reliable they are."),
+
+              fluidRow(
+                column(6,
+                  sliderInput("inference_method1_accuracy",
+                             span(class = "hl-event-a", "Method 1 Accuracy:"),
+                             min = 0, max = 100, value = 81, step = 1,
+                             post = "%")
+                ),
+                column(6,
+                  sliderInput("inference_method2_accuracy",
+                             span(class = "hl-event-b", "Method 2 Accuracy:"),
+                             min = 0, max = 100, value = 93, step = 1,
+                             post = "%")
+                )
+              ),
+
+              actionButton("inference_randomize", "Randomize 100 Tests", class = "btn-primary"),
+
+              div(class = "plot-container", style = "margin-top: 20px;",
+                  plotOutput("inference_grid", height = "400px")
+              ),
+
+              div(class = "formula", verbatimTextOutput("inference_calc"))
+          )
+        )
+      })
+      updateTextInput(session, "inference_initialized", value = "1")
+    }
+  })
+
+  # Reactive values for inference grid
+  inference_data <- reactiveVal(NULL)
+
+  # Initialize or randomize the inference grid
+  observeEvent(c(input$inference_randomize, input$inference_method1_accuracy, input$inference_method2_accuracy), {
+    if (!is.null(input$inference_method1_accuracy) && !is.null(input$inference_method2_accuracy)) {
+      # Use a valid seed based on current time
+      set.seed(as.integer(Sys.time()) %% 100000)
+
+      grid_size <- 10
+      n_cells <- grid_size * grid_size
+
+      # Generate ground truth: is there actually a bean?
+      has_bean <- sample(c(TRUE, FALSE), n_cells, replace = TRUE)
+
+      # Method 1 accuracy
+      acc1 <- input$inference_method1_accuracy / 100
+      method1_correct <- runif(n_cells) < acc1
+      method1_answer <- ifelse(method1_correct, has_bean, !has_bean)
+
+      # Method 2 accuracy
+      acc2 <- input$inference_method2_accuracy / 100
+      method2_correct <- runif(n_cells) < acc2
+      method2_answer <- ifelse(method2_correct, has_bean, !has_bean)
+
+      # Create grid data
+      grid_data <- expand.grid(x = 1:grid_size, y = 1:grid_size)
+      grid_data$has_bean <- has_bean
+      grid_data$method1_correct <- method1_correct
+      grid_data$method2_correct <- method2_correct
+      grid_data$method1_answer <- method1_answer
+      grid_data$method2_answer <- method2_answer
+
+      inference_data(grid_data)
+    }
+  }, ignoreNULL = FALSE)
+
+  output$inference_grid <- renderPlot({
+    data <- inference_data()
+    if (is.null(data)) return(NULL)
+
+    # Create display: show has_bean status and method correctness
+    data$display <- paste0(
+      ifelse(data$has_bean, "B", "—"),
+      "\n",
+      ifelse(data$method1_correct, "✓", "✗"),
+      " ",
+      ifelse(data$method2_correct, "✓", "✗")
+    )
+
+    # Color by bean presence
+    data$bean_color <- ifelse(data$has_bean, "Bean", "No Bean")
+
+    ggplot(data, aes(x = x, y = y)) +
+      geom_tile(aes(fill = bean_color), color = "black", linewidth = 0.8) +
+      geom_text(aes(label = display), size = 3, lineheight = 0.8) +
+      scale_fill_manual(values = c("Bean" = "#c8e6c9", "No Bean" = "#ffccbc"),
+                       name = "Ground Truth") +
+      coord_fixed() +
+      theme_void() +
+      theme(legend.position = "bottom",
+            legend.title = element_text(face = "bold"),
+            plot.margin = margin(10, 10, 10, 10)) +
+      labs(caption = "B = Bean present | ✓ = Method correct | ✗ = Method incorrect")
+  })
+
+  output$inference_calc <- renderText({
+    data <- inference_data()
+    if (is.null(data)) return("Click 'Randomize 100 Tests' to begin")
+
+    m1_correct <- sum(data$method1_correct)
+    m2_correct <- sum(data$method2_correct)
+    both_correct <- sum(data$method1_correct & data$method2_correct)
+    both_incorrect <- sum(!data$method1_correct & !data$method2_correct)
+    both_agree <- sum(data$method1_answer == data$method2_answer)
+    agree_and_correct <- sum((data$method1_answer == data$method2_answer) &
+                             data$method1_correct & data$method2_correct)
+
+    paste0(
+      "RESULTS FROM 100 TESTS\n\n",
+      "Method 1: ", m1_correct, "/100 correct\n",
+      "Method 2: ", m2_correct, "/100 correct\n\n",
+      "Both methods correct: ", both_correct, "/100\n",
+      "Both methods incorrect: ", both_incorrect, "/100\n\n",
+      "WHEN BOTH METHODS AGREE:\n",
+      "Times they agreed: ", both_agree, "/100\n",
+      "Times they agreed AND were correct: ", agree_and_correct, "/", both_agree, "\n",
+      "Probability correct when agreeing: ", round(agree_and_correct/both_agree, 4)
     )
   })
 
@@ -1391,29 +1771,8 @@ server <- function(input, output, session) {
                                         "Well-shuffled face cards (J,Q,K)" = "shuffled_face"),
                               selected = "shuffled_standard"),
 
-                  selectInput("ex4_b",
-                              span(class = "hl-event-a", "Consequent B:"),
-                              choices = c("Ace of Spades" = "ace_spades",
-                                        "Red (hearts or diamonds)" = "red",
-                                        "Face card (J,Q,K)" = "face",
-                                        "Even (2,4,6,8,10)" = "even",
-                                        "Less than 10 (2-9)" = "less_10",
-                                        "Higher than 8 (9,10,J,Q,K,A)" = "higher_8"),
-                              selected = "red"),
-
-                  selectInput("ex4_c",
-                              span(class = "hl-event-b", "Consequent C:"),
-                              choices = c("Ace of Spades" = "ace_spades",
-                                        "Red (hearts or diamonds)" = "red",
-                                        "Face card (J,Q,K)" = "face",
-                                        "Even (2,4,6,8,10)" = "even",
-                                        "Less than 10 (2-9)" = "less_10",
-                                        "Higher than 8 (9,10,J,Q,K,A)" = "higher_8"),
-                              selected = "face")
-              ),
-
-              div(class = "plot-container",
-                  plotOutput("ex4_plot", height = "300px")
+                  build_consequent_ui("ex4_b", "Consequent B", "hl-event-a"),
+                  build_consequent_ui("ex4_c", "Consequent C", "hl-event-b")
               ),
 
               div(class = "plot-container",
@@ -1436,234 +1795,48 @@ server <- function(input, output, session) {
     }
   })
 
-  output$ex4_plot <- renderPlot({
-    req(input$ex4_deck_type, input$ex4_b, input$ex4_c)
-
-    deck_type <- input$ex4_deck_type
-    b_cond <- input$ex4_b
-    c_cond <- input$ex4_c
-
-    # Define deck
-    if (deck_type == "shuffled_face") {
-      suits <- rep(c("hearts", "diamonds", "clubs", "spades"), each = 3)
-      ranks <- rep(c("J", "Q", "K"), 4)
-      deck_size <- 12
-    } else if (deck_type == "shuffled_piquet") {
-      suits <- rep(c("hearts", "diamonds", "clubs", "spades"), each = 8)
-      ranks <- rep(c("7", "8", "9", "10", "J", "Q", "K", "A"), 4)
-      deck_size <- 32
-    } else {
-      suits <- rep(c("hearts", "diamonds", "clubs", "spades"), each = 13)
-      ranks <- rep(c("A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"), 4)
-      deck_size <- 52
-    }
-
-    matches_b <- function(suit, rank) {
-      if (b_cond == "red") return(suit %in% c("hearts", "diamonds"))
-      if (b_cond == "ace_spades") return(suit == "spades" && rank == "A")
-      if (b_cond == "even") return(rank %in% c("2", "4", "6", "8", "10"))
-      if (b_cond == "face") return(rank %in% c("J", "Q", "K"))
-      if (b_cond == "less_10") return(rank %in% c("2", "3", "4", "5", "6", "7", "8", "9"))
-      if (b_cond == "higher_8") return(rank %in% c("9", "10", "J", "Q", "K", "A"))
-      return(FALSE)
-    }
-
-    matches_c <- function(suit, rank) {
-      if (c_cond == "red") return(suit %in% c("hearts", "diamonds"))
-      if (c_cond == "ace_spades") return(suit == "spades" && rank == "A")
-      if (c_cond == "even") return(rank %in% c("2", "4", "6", "8", "10"))
-      if (c_cond == "face") return(rank %in% c("J", "Q", "K"))
-      if (c_cond == "less_10") return(rank %in% c("2", "3", "4", "5", "6", "7", "8", "9"))
-      if (c_cond == "higher_8") return(rank %in% c("9", "10", "J", "Q", "K", "A"))
-      return(FALSE)
-    }
-
-    # Calculate theoretical probabilities
-    if (deck_type == "new_standard") {
-      count_b <- if (matches_b("spades", "A")) 1 else 0
-      count_c <- if (matches_c("spades", "A")) 1 else 0
-      count_both <- if (matches_b("spades", "A") && matches_c("spades", "A")) 1 else 0
-      count_b_for_c_given_b <- if (matches_b("spades", "A")) 1 else 0
-    } else {
-      count_b <- sum(sapply(1:deck_size, function(i) matches_b(suits[i], ranks[i])))
-      count_c <- sum(sapply(1:deck_size, function(i) matches_c(suits[i], ranks[i])))
-      count_both <- sum(sapply(1:deck_size, function(i) matches_b(suits[i], ranks[i]) && matches_c(suits[i], ranks[i])))
-      count_b_for_c_given_b <- count_b
-    }
-
-    p_b <- count_b / deck_size
-    p_c <- count_c / deck_size
-    p_both <- count_both / deck_size
-    p_c_given_b <- if (count_b_for_c_given_b > 0) count_both / count_b_for_c_given_b else 0
-
-    # Check independence: B and C are independent if P(C) = P(C|B)
-    is_independent <- abs(p_c - p_c_given_b) < 0.001
-
-    # Visualization
-    par(mar = c(3, 1, 3, 1))
-    plot(NULL, xlim = c(0, 1), ylim = c(0, 5), axes = FALSE, xlab = "", ylab = "")
-
-    title("Independent Probabilities (Theoretical)", cex.main = 1.2, font.main = 2)
-
-    # Bar 1: P(A → B)
-    text(0, 4.5, "P(A → B):", cex = 0.9, adj = 0)
-    rect(0.2, 4.3, 1, 4.6, col = "white", border = "black", lwd = 1.5)
-    rect(0.2, 4.3, 0.2 + p_b * 0.8, 4.6, col = "#fee5d9", border = NA)
-    text(0.6, 4.45, paste0(round(p_b, 4)), cex = 1, font = 2)
-
-    # Bar 2: P(A → C)
-    text(0, 3.8, "P(A → C):", cex = 0.9, adj = 0)
-    rect(0.2, 3.6, 1, 3.9, col = "white", border = "black", lwd = 1.5)
-    rect(0.2, 3.6, 0.2 + p_c * 0.8, 3.9, col = "#deebf7", border = NA)
-    text(0.6, 3.75, paste0(round(p_c, 4)), cex = 1, font = 2)
-
-    # Independence check
-    text(0, 3.2, "P(A∧B → C):", cex = 0.9, adj = 0)
-    text(0.6, 3.2, paste0(round(p_c_given_b, 4)), cex = 1)
-
-    if (is_independent) {
-      text(0.5, 2.8, paste0("✓ INDEPENDENT: P(A→C) = P(A∧B→C)"),
-           cex = 0.9, col = "#28a745", font = 2)
-    } else {
-      text(0.5, 2.8, paste0("✗ NOT Independent: P(A→C) ≠ P(A∧B→C)"),
-           cex = 0.9, col = "red", font = 2)
-    }
-
-    # Product line
-    text(0.5, 2.3, paste0("Product: ", round(p_b * p_c, 4)), cex = 1, font = 1, col = "#666666")
-
-    # Bar 3: P(A → [B∧C])
-    text(0, 1.8, "P(A → [B∧C]):", cex = 0.9, adj = 0)
-    rect(0.2, 1.6, 1, 1.9, col = "white", border = "black", lwd = 1.5)
-    rect(0.2, 1.6, 0.2 + p_both * 0.8, 1.9, col = "#d4e4c4", border = NA)
-    text(0.6, 1.75, paste0(round(p_both, 4)), cex = 1, font = 2)
-
-    # Comparison
-    diff <- abs(p_b * p_c - p_both)
-    if (diff < 0.001) {
-      text(0.5, 0.8, paste0("Rule works! Product = P(A→[B∧C])"),
-           cex = 0.85, col = "#28a745", font = 3)
-    } else {
-      text(0.5, 0.8, paste0("Rule doesn't work here (not independent)"),
-           cex = 0.85, col = "red", font = 3)
-    }
-  })
-
   output$ex4_grid <- renderPlot({
-    req(input$ex4_deck_type, input$ex4_b, input$ex4_c)
+    req(input$ex4_deck_type, input$ex4_b_operator, input$ex4_c_operator)
 
-    deck_type <- input$ex4_deck_type
-    b_cond <- input$ex4_b
-    c_cond <- input$ex4_c
-
-    # Define deck
-    if (deck_type == "shuffled_face") {
-      suits <- c("H", "D", "C", "S")
-      ranks <- c("J", "Q", "K")
-      n_suits <- 4
-      n_ranks <- 3
-    } else if (deck_type == "shuffled_piquet") {
-      suits <- c("H", "D", "C", "S")
-      ranks <- c("7", "8", "9", "10", "J", "Q", "K", "A")
-      n_suits <- 4
-      n_ranks <- 8
-    } else {
-      suits <- c("H", "D", "C", "S")
-      ranks <- c("A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K")
-      n_suits <- 4
-      n_ranks <- 13
-    }
-
-    matches_b <- function(suit, rank) {
-      if (b_cond == "red") return(suit %in% c("H", "D"))
-      if (b_cond == "ace_spades") return(suit == "S" && rank == "A")
-      if (b_cond == "even") return(rank %in% c("2", "4", "6", "8", "10"))
-      if (b_cond == "face") return(rank %in% c("J", "Q", "K"))
-      if (b_cond == "less_10") return(rank %in% c("2", "3", "4", "5", "6", "7", "8", "9"))
-      if (b_cond == "higher_8") return(rank %in% c("9", "10", "J", "Q", "K", "A"))
-      return(FALSE)
-    }
-
-    matches_c <- function(suit, rank) {
-      if (c_cond == "red") return(suit %in% c("H", "D"))
-      if (c_cond == "ace_spades") return(suit == "S" && rank == "A")
-      if (c_cond == "even") return(rank %in% c("2", "4", "6", "8", "10"))
-      if (c_cond == "face") return(rank %in% c("J", "Q", "K"))
-      if (c_cond == "less_10") return(rank %in% c("2", "3", "4", "5", "6", "7", "8", "9"))
-      if (c_cond == "higher_8") return(rank %in% c("9", "10", "J", "Q", "K", "A"))
-      return(FALSE)
-    }
-
-    # Create grid
-    par(mar = c(4, 4, 3, 2))
-    plot(NULL, xlim = c(0.5, n_ranks + 0.5), ylim = c(0.5, n_suits + 0.5),
-         xlab = "", ylab = "", axes = FALSE, asp = 1)
-    title("Possibility Space: Independent B and C", cex.main = 1.1, font.main = 2)
-
-    # Count and draw
-    count_b <- 0
-    count_c <- 0
-    count_both <- 0
-    for (i in 1:n_suits) {
-      for (j in 1:n_ranks) {
-        suit <- suits[i]
-        rank <- ranks[j]
-
-        has_b <- matches_b(suit, rank)
-        has_c <- matches_c(suit, rank)
-
-        if (has_b) count_b <- count_b + 1
-        if (has_c) count_c <- count_c + 1
-        if (has_b && has_c) count_both <- count_both + 1
-
-        # Color: both = pale purple, B only = orange, C only = blue, neither = white
-        col <- if (has_b && has_c) "#c8b2d8" else
-               if (has_b) "#fee5d9" else
-               if (has_c) "#deebf7" else "white"
-
-        rect(j - 0.4, i - 0.4, j + 0.4, i + 0.4, col = col, border = "black", lwd = 0.5)
-        text(j, i, paste0(rank, suit), cex = 0.6)
-      }
-    }
-
-    # Add axis labels
-    axis(3, at = 1:n_ranks, labels = ranks, tick = FALSE, line = -1)
-    axis(2, at = 1:n_suits, labels = c("Hearts", "Diamonds", "Clubs", "Spades"),
-         tick = FALSE, las = 1, line = -1)
-
-    # Calculate and display
-    total_cards <- n_suits * n_ranks
-    p_b <- count_b / total_cards
-    p_c <- count_c / total_cards
-    p_both <- count_both / total_cards
-    p_c_given_b <- if (count_b > 0) count_both / count_b else 0
-
-    text(n_ranks/2, -0.5,
-         paste0("B: ", count_b, " | C: ", count_c, " | B∧C: ", count_both,
-                " | P(A→B)×P(A→C) = ", round(p_b * p_c, 3),
-                " vs P(A→[B∧C]) = ", round(p_both, 3)),
-         cex = 0.85)
-
-    # Independence check
-    if (abs(p_c - p_c_given_b) < 0.001) {
-      text(n_ranks/2, -1,
-           paste0("✓ INDEPENDENT: P(A→C)=", round(p_c, 3), " = P(A∧B→C)=", round(p_c_given_b, 3)),
-           cex = 0.85, col = "#28a745")
-    } else {
-      text(n_ranks/2, -1,
-           paste0("✗ NOT Independent: P(A→C)=", round(p_c, 3), " ≠ P(A∧B→C)=", round(p_c_given_b, 3)),
-           cex = 0.85, col = "red")
-    }
+    grid <- create_grid("card_deck", list(deck_type = input$ex4_deck_type))
+    rule_b <- get_consequent_rule(input, "ex4_b")
+    rule_c <- get_consequent_rule(input, "ex4_c")
+    matched_b <- evaluate_consequent(grid, rule_b)
+    matched_c <- evaluate_consequent(grid, rule_c)
+    render_grid_plot(grid, matched_b, "double", "Possibility Space: Independent B and C", matched_c)
   })
 
   output$ex4_calc <- renderText({
-    req(input$ex4_deck_type, input$ex4_b, input$ex4_c)
+    req(input$ex4_deck_type, input$ex4_b_operator, input$ex4_c_operator)
 
     deck_type <- input$ex4_deck_type
-    b_cond <- input$ex4_b
-    c_cond <- input$ex4_c
 
-    # Descriptions
+    # Create grid and rules using generic framework
+    grid <- create_grid("card_deck", list(deck_type = deck_type))
+    rule_b <- get_consequent_rule(input, "ex4_b")
+    rule_c <- get_consequent_rule(input, "ex4_c")
+
+    # Evaluate consequents
+    matched_b <- evaluate_consequent(grid, rule_b)
+    matched_c <- evaluate_consequent(grid, rule_c)
+    matched_both <- matched_b & matched_c
+
+    # Calculate counts
+    count_b <- sum(matched_b)
+    count_c <- sum(matched_c)
+    count_both <- sum(matched_both)
+    deck_size <- nrow(grid$cells)
+
+    # Calculate probabilities
+    p_b <- count_b / deck_size
+    p_c <- count_c / deck_size
+    p_both <- count_both / deck_size
+    p_c_given_b <- if (count_b > 0) count_both / count_b else 0
+
+    # Independence test
+    is_independent <- abs(p_c - p_c_given_b) < 0.001
+
+    # Create descriptions
     antecedent_desc <- if (deck_type == "new_standard") {
       "Draw from NEW STANDARD deck (Ace♠ on top)"
     } else if (deck_type == "shuffled_face") {
@@ -1674,78 +1847,47 @@ server <- function(input, output, session) {
       "Draw from SHUFFLED STANDARD deck"
     }
 
-    b_desc <- switch(b_cond,
-      "red" = "Card is RED",
-      "ace_spades" = "Card is ACE OF SPADES",
-      "even" = "Card is EVEN (2,4,6,8,10)",
-      "face" = "Card is FACE CARD (J,Q,K)",
-      "less_10" = "Card is LESS THAN 10 (2-9)",
-      "higher_8" = "Card is HIGHER THAN 8 (9,10,J,Q,K,A)",
-      b_cond
-    )
+    # Build rule descriptions
+    build_rule_desc <- function(rule) {
+      operator <- rule$operator
+      suit_desc <- if (rule$suit == "any") "" else paste0(" of ",
+        switch(rule$suit, "H" = "Hearts", "D" = "Diamonds", "C" = "Clubs", "S" = "Spades"))
 
-    c_desc <- switch(c_cond,
-      "red" = "Card is RED",
-      "ace_spades" = "Card is ACE OF SPADES",
-      "even" = "Card is EVEN (2,4,6,8,10)",
-      "face" = "Card is FACE CARD (J,Q,K)",
-      "less_10" = "Card is LESS THAN 10 (2-9)",
-      "higher_8" = "Card is HIGHER THAN 8 (9,10,J,Q,K,A)",
-      c_cond
-    )
-
-    # Define deck
-    if (deck_type == "shuffled_face") {
-      suits <- rep(c("hearts", "diamonds", "clubs", "spades"), each = 3)
-      ranks <- rep(c("J", "Q", "K"), 4)
-      deck_size <- 12
-    } else if (deck_type == "shuffled_piquet") {
-      suits <- rep(c("hearts", "diamonds", "clubs", "spades"), each = 8)
-      ranks <- rep(c("7", "8", "9", "10", "J", "Q", "K", "A"), 4)
-      deck_size <- 32
-    } else {
-      suits <- rep(c("hearts", "diamonds", "clubs", "spades"), each = 13)
-      ranks <- rep(c("A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"), 4)
-      deck_size <- 52
+      if (operator == "exactly") {
+        paste0("Card is exactly ", rule$rank, suit_desc)
+      } else if (operator == "higher_than") {
+        paste0("Card is higher than ", rule$rank, suit_desc)
+      } else if (operator == "lower_than") {
+        paste0("Card is lower than ", rule$rank, suit_desc)
+      } else if (operator == "any") {
+        prop_desc <- switch(rule$property,
+          "any_card" = "Any card",
+          "even" = "Even",
+          "odd" = "Odd",
+          "face" = "Face card",
+          "non_face" = "Non-face",
+          "red" = "Red",
+          "black" = "Black"
+        )
+        paste0("Card is ", prop_desc, suit_desc)
+      } else if (operator == "anything_other_than") {
+        if (!is.null(rule$property)) {
+          prop_desc <- switch(rule$property,
+            "even" = "Even",
+            "odd" = "Odd",
+            "face" = "Face card",
+            "red" = "Red",
+            "black" = "Black"
+          )
+          paste0("Card is anything other than ", prop_desc, suit_desc)
+        } else {
+          paste0("Card is anything other than ", rule$rank, suit_desc)
+        }
+      }
     }
 
-    matches_b <- function(suit, rank) {
-      if (b_cond == "red") return(suit %in% c("hearts", "diamonds"))
-      if (b_cond == "ace_spades") return(suit == "spades" && rank == "A")
-      if (b_cond == "even") return(rank %in% c("2", "4", "6", "8", "10"))
-      if (b_cond == "face") return(rank %in% c("J", "Q", "K"))
-      if (b_cond == "less_10") return(rank %in% c("2", "3", "4", "5", "6", "7", "8", "9"))
-      if (b_cond == "higher_8") return(rank %in% c("9", "10", "J", "Q", "K", "A"))
-      return(FALSE)
-    }
-
-    matches_c <- function(suit, rank) {
-      if (c_cond == "red") return(suit %in% c("hearts", "diamonds"))
-      if (c_cond == "ace_spades") return(suit == "spades" && rank == "A")
-      if (c_cond == "even") return(rank %in% c("2", "4", "6", "8", "10"))
-      if (c_cond == "face") return(rank %in% c("J", "Q", "K"))
-      if (c_cond == "less_10") return(rank %in% c("2", "3", "4", "5", "6", "7", "8", "9"))
-      if (c_cond == "higher_8") return(rank %in% c("9", "10", "J", "Q", "K", "A"))
-      return(FALSE)
-    }
-
-    # Calculate theoretical
-    if (deck_type == "new_standard") {
-      count_b <- if (matches_b("spades", "A")) 1 else 0
-      count_c <- if (matches_c("spades", "A")) 1 else 0
-      count_both <- if (matches_b("spades", "A") && matches_c("spades", "A")) 1 else 0
-    } else {
-      count_b <- sum(sapply(1:deck_size, function(i) matches_b(suits[i], ranks[i])))
-      count_c <- sum(sapply(1:deck_size, function(i) matches_c(suits[i], ranks[i])))
-      count_both <- sum(sapply(1:deck_size, function(i) matches_b(suits[i], ranks[i]) && matches_c(suits[i], ranks[i])))
-    }
-
-    p_b <- count_b / deck_size
-    p_c <- count_c / deck_size
-    p_both <- count_both / deck_size
-    p_c_given_b <- if (count_b > 0) count_both / count_b else 0
-
-    is_independent <- abs(p_c - p_c_given_b) < 0.001
+    b_desc <- build_rule_desc(rule_b)
+    c_desc <- build_rule_desc(rule_c)
 
     paste0(
       "ANTECEDENT A: ", antecedent_desc, "\n\n",
