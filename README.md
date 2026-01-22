@@ -57,7 +57,7 @@ source("Assessing Methods.R")
 
 ### Gurney Telepathy
 **Location**: `Gurney Telepathy.R`
-**Status**: Stable
+**Status**: Stable (but also a mess)
 
 Analysis of Edmund Gurney's telepathy experiments using Peirce's critique methodology.
 
@@ -176,13 +176,6 @@ Unlike modern probability theory, Peirce defines probability as belonging to **c
 - **Consequence**: The relationship/rule connecting them
 - **Probability**: How often the consequence holds (antecedent → consequent)
 
-Example:
-- Antecedent: "Has disease" (50 people)
-- Consequent: "Tests positive"
-- Consequence: "If disease, then positive test"
-- Probability: 45/50 = 0.9 (the consequence holds 90% of the time)
-
-All examples in the new app use this framework explicitly.
 
 ## Design Philosophy
 
