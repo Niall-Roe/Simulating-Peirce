@@ -4,30 +4,34 @@ Interactive Shiny applications exploring C.S. Peirce's work on probability, indu
 
 ## Applications
 
-### 📖 Probability of Induction (NEW - In Development)
+### Probability of Induction Interactive Reader
 **Location**: `Probability of Induction/`
+**Status**: Active development
 
-Interactive reading experience of Peirce's 1878 article "The Probability of Induction" with inline mathematical examples.
+Interactive reading experience of Peirce's 1878 article "The Probability of Induction" with inline mathematical examples. Presents the complete article text with clickable examples that launch visualizations using Peirce's antecedent-consequent-consequence framework.
 
-**Features:**
-- Complete article text with clickable interactive examples
-- Color-coordinated visualizations matching text
-- Uses Peirce's antecedent-consequent-consequence framework
-- Extensible architecture for adding examples
+**Purpose**: Enable readers to explore Peirce's mathematical arguments interactively while maintaining the original text and conceptual framework. Color-coordinated visualizations connect text to working examples.
+
+**Current Progress**:
+- Foundation complete with extensible architecture
+- 10 examples all but complete
+- 1 example in progress
+- 14 examples to do
 
 **To Run:**
 ```r
 shiny::runApp("Probability of Induction/app.R")
 ```
 
-**Status**: Foundation complete with 2 working examples. Ready for incremental development. See `Probability of Induction/STATUS.md` for details.
-
 ---
 
-### 🎲 Probability of Induction (Original)
+### Probability of Induction (Standalone)
 **Location**: `Probability of Induction.R`
+**Status**: Stable
 
-Standalone app comparing induction vs deduction in statistical inference.
+Compares induction vs deduction in statistical inference. Interactive demonstration showing how inductive reasoning moves from sample to population while deductive reasoning moves from population to sample. Includes adjustable population parameters and noise distributions.
+
+**Purpose**: Illustrate the fundamental difference between inductive and deductive statistical reasoning using interactive visualizations.
 
 **To Run:**
 ```r
@@ -36,10 +40,13 @@ source("Probability of Induction.R")
 
 ---
 
-### ⚖️ Assessing Methods
+### Assessing Methods
 **Location**: `Assessing Methods.R`
+**Status**: Stable
 
-Explores weight of evidence and Bayesian reasoning.
+Progressive exploration of forecast evaluation methods across three complexity levels: success rates, confusion matrices, and the Method of Balancing Reasons.
+
+**Purpose**: Demonstrate Peirce's approach to evaluating predictive methods using weight of evidence, confusion matrices, and likelihood ratios. Includes presets for historical examples (Finley's tornado forecasts, Peirce's gold/lead experiments).
 
 **To Run:**
 ```r
@@ -48,17 +55,63 @@ source("Assessing Methods.R")
 
 ---
 
-### 🔮 Gurney Telepathy
+### Gurney Telepathy
 **Location**: `Gurney Telepathy.R`
+**Status**: Stable
 
-Analysis of Edmund Gurney's telepathy experiments using Peirce's methods.
+Analysis of Edmund Gurney's telepathy experiments using Peirce's critique methodology.
+
+**Purpose**: Demonstrate Peirce's statistical critique of Gurney's 1888 telepathy experiments, showing how conditional probabilities and memory biases affect evidential reasoning. Compares Gurney's simple base-rate calculation with Peirce's more sophisticated analysis accounting for death rate categories and memory correction factors.
+
+**To Run:**
+```r
+source("Gurney Telepathy.R")
+```
 
 ---
 
-### 📊 Weight of Evidence
+### Weight of Evidence
 **Location**: `Weight of Evidence.R`
+**Status**: Stable
 
-Interactive exploration of evidential reasoning and likelihood ratios.
+Compares four concepts of weight of evidence: Peirce's Balance of Reasons, Peirce's Amount of Knowledge, Good's Weight (Bayesian), and Keynes's Weight.
+
+**Purpose**: Illustrate how different thinkers conceptualize evidential weight using a bean-drawing scenario. Highlights distinctions between frequentist and Bayesian approaches.
+
+**To Run:**
+```r
+source("Weight of Evidence.R")
+```
+
+---
+
+### Kets Analysis
+**Location**: `Kets.R`
+**Status**: Stable
+
+Mixture model decomposition of Peirce's Kets weight measurements.
+
+**Purpose**: Analyze Peirce's 1873 gravity experiments using mixture decomposition to identify the five standard weights. Demonstrates Gaussian mixture models applied to historical metrology data with options to use Peirce's historical probable error or estimate from data.
+
+**To Run:**
+```r
+source("Kets.R")
+```
+
+---
+
+### Probable vs Necessary Deduction
+**Location**: `Prob Deduction v P of Ded.R`
+**Status**: Stable
+
+Compares probable deduction (strong argument for guarded conclusion) with necessary deduction (weak argument for strong conclusion).
+
+**Purpose**: Illustrate Peirce's distinction between different forms of deductive reasoning and their convergence properties through simulation.
+
+**To Run:**
+```r
+source("Prob Deduction v P of Ded.R")
+```
 
 ---
 
@@ -66,51 +119,51 @@ Interactive exploration of evidential reasoning and likelihood ratios.
 
 ```
 Simulating-Peirce/
-├── Probability of Induction/       # NEW: Interactive article reader
-│   ├── app.R                       # Main Shiny app
-│   ├── full_text.txt              # Complete article text
-│   ├── README.md                   # App documentation
-│   ├── DEVELOPMENT_GUIDE.md        # Implementation guide
-│   └── STATUS.md                   # Current status
-├── Probability of Induction.R      # Original standalone app
-├── Assessing Methods.R             # Weight of evidence app
-├── Gurney Telepathy.R              # Telepathy analysis
-├── Weight of Evidence.R            # Likelihood ratios
-├── Kets.R                          # Kets analysis
-├── Prob Deduction v P of Ded.R     # Deduction comparison
-└── README.md                       # This file
+├── Probability of Induction/              # Interactive article reader (in development)
+│   ├── app.R                              # Main Shiny app
+│   ├── full_text.txt                      # Complete article text
+│   ├── Working Copy Examples/             # Example implementations by status
+│   │   ├── 1 - To Do/                     # 14 examples planned
+│   │   ├── 2 - In Progress/               # 1 example under development
+│   │   ├── 3 - All But Complete/          # 10 examples nearly ready
+│   │   └── 4 - Incorporated/              # Completed examples
+│   └── framework_updates.R                # Development utilities
+├── Probability of Induction.R             # Standalone induction vs deduction
+├── Assessing Methods.R                    # Forecast evaluation methods
+├── Gurney Telepathy.R                     # Telepathy experiment critique
+├── Weight of Evidence.R                   # Four concepts of evidential weight
+├── Kets.R                                 # Mixture model decomposition
+├── Prob Deduction v P of Ded.R            # Deduction comparison
+├── v1 PoI read through.R                  # Early prototype of interactive reader
+├── Probability of Induction - Working Copy - copy jan 18.R  # Development snapshot
+└── Popular_Science_Monthly_Volume_12_April_1878_Illustrations_of_the_Logic_of_Science_IV.pdf
 ```
 
 ## Getting Started
 
 ### Prerequisites
 ```r
-install.packages(c("shiny", "shinyjs", "ggplot2", "dplyr", "tidyr"))
+install.packages(c("shiny", "shinyjs", "ggplot2", "dplyr", "tidyr", "bslib", "DT", "scales", "mixtools"))
 ```
 
 ### Running Apps
 
-**Option 1: From R/RStudio**
+For Shiny apps in folders:
 ```r
 shiny::runApp("Probability of Induction/app.R")
 ```
 
-**Option 2: Source directly**
+For standalone R scripts:
 ```r
-source("Probability of Induction.R")  # For older standalone apps
+source("Probability of Induction.R")
+source("Assessing Methods.R")
+source("Weight of Evidence.R")
+# etc.
 ```
 
 ## Current Focus
 
-The **Probability of Induction** interactive reader is the main development focus. This app:
-
-1. Presents Peirce's complete 1878 article
-2. Allows readers to click mathematical examples in the text
-3. Provides interactive visualizations for each example
-4. Uses color coordination to connect text with visuals
-5. Maintains Peirce's conceptual framework throughout
-
-See `Probability of Induction/DEVELOPMENT_GUIDE.md` for implementation details.
+The **Probability of Induction Interactive Reader** is in active development. The app presents Peirce's complete 1878 article with clickable mathematical examples that launch interactive visualizations. The foundation is complete with an extensible architecture for adding examples incrementally. Of 25 planned examples, 10 are nearly complete, 1 is in progress, and 14 are planned.
 
 ## Key Concepts
 
@@ -141,52 +194,14 @@ All examples in the new app use this framework explicitly.
 
 ## Development Status
 
-### Probability of Induction Reader
-- ✅ Foundation complete
-- ✅ 2 working examples
-- 🚧 12+ more examples planned
-- 🚧 Full text integration in progress
-- 📋 See `Probability of Induction/STATUS.md` for details
+**Probability of Induction Interactive Reader**: In development (25 examples: 10 nearly complete, 1 in progress, 14 planned)
 
-### Other Apps
-- ✅ All functional and complete
-- Some may benefit from integration with new interactive framework
-
-## Contributing
-
-To add new examples to the Probability of Induction reader:
-
-1. See `Probability of Induction/DEVELOPMENT_GUIDE.md`
-2. Follow the established pattern
-3. Use color coordination
-4. Maintain Peirce's framework
-
-## Resources
-
-- **Source PDF**: `Popular_Science_Monthly_Volume_12_April_1878_Illustrations_of_the_Logic_of_Science_IV.pdf`
-- **Full Text**: `Probability of Induction/full_text.txt`
-- **Implementation Guide**: `Probability of Induction/IMPLEMENTATION_GUIDE.md`
+**All Other Apps**: Stable (functional, not in active development)
 
 ## Academic Context
 
-These apps explore C.S. Peirce's pioneering work in:
-
-- Pragmatic philosophy
-- Frequentist interpretation of probability
-- Inductive logic and scientific method
-- Statistical inference theory
-- Philosophy of science
-
-Peirce's "Illustrations of the Logic of Science" (1877-1878) laid groundwork for American pragmatism and modern statistical theory.
-
-## License
-
-Educational and research use.
+These applications explore C.S. Peirce's pioneering contributions to pragmatic philosophy, frequentist probability interpretation, inductive logic, statistical inference theory, and the scientific method. Peirce's "Illustrations of the Logic of Science" (1877-1878) laid foundational groundwork for American pragmatism and modern statistical theory.
 
 ## Author
 
 Niall Roe
-
-## Last Updated
-
-January 17, 2026
