@@ -1,140 +1,7 @@
 library(shiny)
 library(shinyjs)
 
-#notes 
-# - this is taking ex 19 and making it fit for another purpose. 
-# have updated starting values to represented target paragraph, which is:
-
-# As we cannot have an urn with an infinite number of balls to
-# represent the inexhaustibleness of Nature, let us suppose one with a
-# finite number, each ball being thrown back into the urn after being
-# drawn out, so that there is no exhaustion of them. Suppose one ball
-# out of three is white and the rest black, and that four balls are drawn.
-# Then the table on [another page] represents the relative frequency of the
-# different ways in which these balls might be drawn. It will be seen
-# that if we should judge by these four balls of the proportion in the
-# urn, 32 times out of 81 we should find it 1/4, and 24 times out of 81 we
-# should find it 1/2, the truth being 1/3 To extend this table to high num-
-#   bers would be great labor, but the mathematicians have found some
-# ingenious ways of reckoning what the numbers would be.
-
-# to do:
-#   
-#   1 set the CI sliders to be off by default. further, lets not display the blue distribution unless that CI toggle is clicked. Make those toggles not appear unless a further toggle is hit "eEable Confidence Intervals (not part of this example)"
-#   2 count the possible outcomes given the initial settings. here, there should be 81. this is based on: one way to get all white: wwww. 4 ways to get 3w1b, but there are two sets. 6 ways to get 2b2w, but there are 4 sets. etc... this reasoning may be subtle, and requires teasing out. here is how he puts it for your reference:
-# 
-# Suppose we had an immense granary filled with black and
-# white balls well mixed up; and suppose each urn were filled by taking
-# a fixed number of balls from this granary quite at random. The
-# relative number of white balls in the granary might be anything, say
-# one in three. Then in one-third of the urns the first ball would be
-# white, and in two-thirds black. In one-third of those urns of which the
-# first ball was white, and also in one-third of those in which the first
-# ball was black, the second ball would be white. In this way, we should
-# have a distribution like that shown in the following table, where w stands for a white ball and b for a black one. The reader can, if he
-# chooses, verify the table for himself. 
-# 
-# wwww.
-# 
-# wwwb. wwbw. wbww. bwww.
-# wwwb. wwbw. wbww. bwww.
-# 
-# wwbb. wbwb. bwwb. wbbw. bwbw. bbww.
-# wwbb. wbwb. bwwb. wbbw. bwbw. bbww.
-# wwbb. wbwb. bwwb. wbbw. bwbw. bbww.
-# wwbb. wbwb. bwwb. wbbw. bwbw. bbww.
-# 
-# wbbb. bwbb. bbwb. bbbw.
-# wbbb. bwbb. bbwb. bbbw.
-# wbbb. bwbb. bbwb. bbbw.
-# wbbb. bwbb. bbwb. bbbw.
-# wbbb. bwbb. bbwb. bbbw.
-# wbbb. bwbb. bbwb. bbbw.
-# wbbb. bwbb. bbwb. bbbw.
-# wbbb. bwbb. bbwb. bbbw.
-# 
-# bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb.
-# bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb. bbbb.
-# 
-# In the second group, where there is one b, there are
-# two sets just alike; in the third there are 4, in the fourth
-# 8, and in the fifth 16, doubling every time. This is be-
-#   cause we have supposed twice as many black balls in the
-# granary as white ones; had we supposed 10 times as
-# many, instead of
-# 
-# 1, 2, 4, 8, 16
-# 
-# sets we should have had
-# 
-# 1, 10, 100, 1000, 10000
-# 
-# sets; on the other hand, had the numbers of black and
-# white balls in the granary been even, there would have
-# been but one set in each group. ...
-# 
-# As we cannot have an urn with an infinite number of balls to
-# represent the inexhaustibleness of Nature, let us suppose one with a
-# finite number, each ball being thrown back into the urn after being
-# drawn out, so that there is no exhaustion of them. Suppose one ball
-# out of three is white and the rest black, and that four balls are drawn.
-# Then the table on page 299 represents the relative frequency of the
-# different ways in which these balls might be drawn. 
-
-# the point is that it is not just the ways they can be combined... but the frequency too. This is the binomial expansion. here is how it works:
-
-
-# To represent the relative frequencies of draws from a "granary" with a specific ratio, a programmer should use the **Binomial Expansion**.
-# 
-# ### The Logic
-# 
-# When drawing  balls where the ratio of White to Black is :
-#   
-#   1. **Combinations:** The number of ways to arrange the balls (e.g.,  vs ) is determined by the **Binomial Coefficient**.
-# 2. **Weights:** Each ball drawn acts as a multiplier based on its frequency in the granary. A "set" is simply the weight assigned to a specific sequence.
-# 
-# ---
-#   
-#   ### The Variables
-#   
-#   *  = Number of draws (e.g., 4).
-# *  = Weight of the first type (e.g., White = 1).
-# *  = Weight of the second type (e.g., Black = 2).
-# 
-# ### The Formulas
-# 
-# **1. Total Relative Outcomes:**
-#   To get the total number of outcomes (like the 81 in your example), use:
-#   
-#   
-#   **2. Frequency of a specific outcome:**
-#   To find the frequency for exactly  white balls:
-#   
-#   
-#   
-#   *(Where  is the number of ways to arrange  items in  slots).*
-#   
-#   ---
-#   
-#   ### Programmer’s Reference Table ()
-#   
-#   This is how the "81 outcomes" are calculated programmatically:
-#   
-#   | White Balls () | Permutations  | Weight () | Total Freq |
-#   | --- | --- | --- | --- |
-#   | 4 |  |  | **1** |
-#   | 3 |  |  | **8** |
-#   | 2 |  |  | **24** |
-#   | 1 |  |  | **32** |
-#   | 0 |  |  | **16** |
-#   | **Sum** |  |  | **81** |
-#   
-
-#   3 reconfigure the text to use that number as the denominator. as in the above paragraph where it is in terms of 81. we can keep the /1000 version, but then say, after "= [decimal]": " = x/total]"
-#   4 in the always on text, it should read "Suppose [one] ball out of [three] is white and the rest black, and that [four] balls are drawn.Thus there are [denominator] possible outcomes"
-#.  5 when you click an outcome, that text can add: "It will be seen that if we should judge by these [four] balls of the proportion in the urn, [32] times out of [81] we should find it to be [clicked proportion, either 0/4, 1/4, ... 4/4] [=[decimal]]"
-#   6 we will need a way to make sure this does not get bonkers for large numbers of possible combinations. maybe if the number of combinations is high, we can still display the number (if it is easy to calculate) but if not, just say "more than a thousand" or something. then, the above can be modified so that it says "more than a thousand" for the always present text, and for the clicked text, gives your probabilities with 1000 as the denominator. 
-
+#to do: update the blurb
 
 # Helper function to calculate total possible outcomes using binomial expansion
 # For ratio w:b and n draws, total = (w + b)^n
@@ -250,7 +117,7 @@ ui <- fluidPage(
   ),
 
   div(class = "article-container",
-      h3("Example 19: Probability and Extreme Values"),
+      h3("Example 19: An Urn"),
 
       p("As we cannot have an urn with an infinite number of balls to represent the inexhaustibleness of Nature, let us suppose one with a finite number, each ball being thrown back into the urn after being drawn out, so that there is no exhaustion of them. ",
         span(class = "example-trigger", id = "ex19-trigger",
@@ -259,9 +126,9 @@ ui <- fluidPage(
       ),
 
       div(id = "example-19", class = "example-container", style = "display: none;",
-          h4("Interactive Demonstration: Binomial Distribution and Extreme Probabilities"),
+          h4("Interactive Demonstration: Binomial Distribution and [what]"),
 
-          p("Explore how the shape of the sampling distribution changes when the true proportion is very small or very large. Click on any bar to see the exact probability. Try exploring how the size of the confidence interval changes when p is an extreme value as compared to when it is closer to 0.5."),
+          p("Explore how [to be written]"),
 
           fluidRow(
             column(4,

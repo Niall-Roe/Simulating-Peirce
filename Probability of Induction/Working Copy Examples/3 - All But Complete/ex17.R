@@ -6,21 +6,8 @@ library(shinyjs)
 
 #To Do:
 #1
-#must make the distribution accurate. binmoial distribution will be skewed if p is v large or v small.
-#ENSURE you use the binomial calculations / distribution as it is here:
-#'/Users/niallroe/Documents/GitHub/Simulating-Peirce/Probability of Induction/Working Copy Examples/3 - Complete/ex19.R'
-
-# 2
-#Fix the formatting up front. "After drawing s balls" to "samples) will be" should all be one line, not breaking out p-hat. 
-
-# 3
-#Change what it says in the box to show more clearly that given your sample, p-hat = __ \pm error. 
-
-# 4
-#add text to say e.g., change s to see how the distribution changes, the CL to see how the CI changes.
-
-# 5 
-#make sure the history plot is fixed from 0-1 on the y axis. let the p and the Ci move around in that space. 
+#for the p slider:
+# make the slider sticky for regular fractions, quarters, thirds and fifths. 
 
 #end of instructions.
 
@@ -91,7 +78,7 @@ ui <- fluidPage(
             fluidRow(
               column(4,
                 sliderInput("ex17_p", "True proportion (p):",
-                           min = 0.1, max = 0.9, value = 0.5, step = 0.001),
+                           min = 0.001, max = 0.999, value = 0.5, step = 0.001),
                 sliderInput("ex17_s", "Number of balls drawn (s):",
                            min = 10, max = 1000, value = 100, step = 10),
                 checkboxInput("ex17_rescale", "Rescale charts", FALSE),
