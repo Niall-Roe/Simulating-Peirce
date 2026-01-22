@@ -1,15 +1,7 @@
 library(shiny)
 library(shinyjs)
 
-#General instructions
-# Based on ex 1-4, build a framework that lets the user view and explore the following examples (which should be presets), and include some other illustrative presets.
-# To show the working of these rules we may examine the probabilities in regard to throwing dice. What is the probability of throwing a six with one die? The antecedent here is the event of throwing a die; the consequent, its turning up a six. As the die has six sides, all of which are turned up with equal frequency, the probability of turning up any one is 1/6. Suppose two dice are thrown, what is the probability of throwing sixes? The probability of either coming up six is obviously the same when both are thrown as when one is thrown — namely, 1/6. The probability that either will come up six when the other does is also the same as that of its coming up six whether the other does or not. The probabilities are, therefore, independent; and, by our rule, the probability that both events will happen together is the product of their several probabilities, 1/6 × 1/6. What is the probability of throwing deuce-ace? The probability that the first die will turn up ace and the second deuce is the same as the probability that both will turn up sixes — namely, 1/36; the probability that the second will turn up ace and the first deuce is likewise 1/36. These two events — first, ace; second, deuce; and, second, ace; first, deuce — are incompatible. Hence the rule for addition holds, and the probability that either will come up ace and the other deuce is 1/36 + 1/36 or 1/18.
 
-
-#To do:
-
-# after says which rule, give the formula for the rule again, in terms of P(A-->B) etc. 
-# moveo the chart up next to the buttons, so the user does not have to scroll up and down. The caluclation info can be moved into the rule etc box. 
 
 ui <- fluidPage(
   useShinyjs(),
@@ -117,6 +109,11 @@ ui <- fluidPage(
           h4("Interactive Demonstration: Working with Dice Probabilities"),
 
           p("Explore classic dice probability problems using the rules we've learned. Select a preset or customize your own scenario."),
+
+          div(class = "key-insight",
+              strong("Important Note: "),
+              "The problems we are solving here are theoretical ones. The answers to those problems give us expectations about empirical long-run frequencies, assuming our theoretical assumptions hold. But we solve the problems of dice with the mathematics, not by rolling them 10,000 times—just like we solve geometry problems with trigonometry, not a protractor."
+          ),
 
           # Preset buttons
           div(style = "margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px;",
@@ -298,9 +295,9 @@ server <- function(input, output, session) {
     } else {
       fluidRow(
         column(4,
-               div(class = "key-insight",
-                   h5(strong(preset$name)),
-                   p("Run trials to see how the long-run frequency converges to the theoretical probability.")
+               p(class = "key-insight",
+                 strong("Empirical View: "),
+                 "Run trials to see how the long-run frequency converges to the theoretical probability. While we solve the problem with mathematics in theoretical mode, the empirical simulation demonstrates that our calculations predict real-world outcomes."
                ),
                hr(),
                sliderInput("ex5_n_trials", "Number of trials:",

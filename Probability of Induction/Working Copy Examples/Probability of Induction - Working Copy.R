@@ -1,14 +1,6 @@
 library(shiny)
 library(shinyjs)
 
-#To Do
-#compare the text here to that found in:
-# '/Users/niallroe/Documents/GitHub/Simulating-Peirce/Probability of Induction/full_text.txt'
-# where the text has discrepancies (other than trascroption error of mathematics, or things like page numbers or whatver) then:
-# fix the wording of language that is included here, but included incorrectly;
-#add language that is missing. if there is a math bit that is garbled, maybe just make not of that. 
-
-
 ui <- fluidPage(
   useShinyjs(),
   withMathJax(),

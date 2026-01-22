@@ -1,16 +1,6 @@
 library(shiny)
 library(shinyjs)
 
-#Target Text:
-#"The use of this may be illustrated by an example. By the census of 1870, it appears that the proportion of males among native white children under one year old was 0.5082, while among colored children of the same age the proportion was only 0.4977. The difference is 0.0105, or about one in a 100. Can this be attributed to chance? Here p may be taken at 1/2; hence 2p(1-p) is also 1/2. The number of white children counted was near 1,000,000; hence the fraction whose square-root is to be taken is about 1/2,000,000. The root is about 1/1,400, and this multiplied by 0.477 gives about 0.0003 as the probable error. For black children (about 150,000), the error is 0.0008. We see that the actual discrepancy is ten times the sum of these, and such a result would happen only once out of 10,000,000,000 censuses, in the long run."
-
-#Context from Mayo's description:
-# Peirce is asking whether the difference is REAL/SYSTEMATIC vs. due to CHANCE
-# The key test: Does the observed difference fall WITHIN or BEYOND the error intervals?
-# Peirce checks against 4.77e (the largest interval in his table)
-# Since the difference falls BEYOND even this largest interval, it indicates a REAL difference
-# The logic: If due to chance, the difference would (with high probability) be INCLUDED in the interval
-# This is a "reliable probe" - the procedure tests for the ERROR of ruling out chance
 
 ui <- fluidPage(
   useShinyjs(),
@@ -298,8 +288,12 @@ server <- function(input, output, session) {
         ),
 
         if (calc$ratio > 4.77) {
-          p(style = "font-weight: bold; color: #d9534f;",
-            sprintf("The difference (%.1f × error) falls BEYOND even the 4.77e interval!", calc$ratio))
+          div(
+            p(style = "font-weight: bold; color: #d9534f;",
+              sprintf("The difference (%.1f × error) falls BEYOND even the 4.77e interval!", calc$ratio)),
+            p(style = "font-weight: bold; color: #d9534f;",
+              sprintf("Such a result would be expected to occur %.6f%% of the time by chance.", calc$p_value * 100))
+          )
         } else if (calc$ratio > 1.821) {
           p(style = "font-weight: bold; color: #f0ad4e;",
             sprintf("The difference (%.1f × error) falls beyond the 99%% interval.", calc$ratio))
@@ -344,11 +338,11 @@ server <- function(input, output, session) {
         p(strong("Long-run frequency: "),
           if (calc$odds < Inf) {
             if (calc$odds > 1e9) {
-              sprintf("Such a result would happen only once out of %s censuses, in the long run.",
-                     format(calc$odds, scientific = TRUE, digits = 2))
+              sprintf("Such a result would happen only once out of %s censuses, in the long run, something we would expect to occur by chance only %.6f%% of the time.",
+                     format(calc$odds, scientific = TRUE, digits = 2), calc$p_value * 100)
             } else {
-              sprintf("Such a result would happen only once out of %s censuses, in the long run.",
-                     format(round(calc$odds), big.mark = ","))
+              sprintf("Such a result would happen only once out of %s censuses, in the long run, something we would expect to occur by chance only %.6f%% of the time.",
+                     format(round(calc$odds), big.mark = ","), calc$p_value * 100)
             }
           } else {
             "Such a result would essentially never happen by chance alone."

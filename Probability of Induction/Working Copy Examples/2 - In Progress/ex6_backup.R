@@ -2,10 +2,6 @@ library(shiny)
 library(shinyjs)
 
 
-# lets add three presets. the first is the current example. 
-#The second and third will be these proportions 
-
-
 # Reference text for this example (Peirce's description):
 # Suppose that we have two rules of inference, such that, of all the questions to the solution of which both can be applied,
 # the first yields correct answers to 81/100, and incorrect answers to the remaining 19/100; while the second yields correct
@@ -211,14 +207,12 @@ ui <- fluidPage(
 
               # Trial sub-mode
               div(id = "ex6-submode-trial", style = "display: none;",
-                  p(class = "key-insight", "This shows ", strong("actual samples"), ": asking each friend multiple times. Trials are cumulative - watch how results converge to expected values!"),
+                  p(class = "key-insight", "This shows ", strong("actual samples"), ": asking each friend 100 times. Results may vary from expected due to randomness."),
 
-                  actionButton("ex6_run_100", "Ask Friends 100 More Times", class = "btn-primary", style = "margin-right: 10px;"),
-                  actionButton("ex6_reset_trials", "Reset Trials", class = "btn-warning", style = "margin-right: 10px;"),
-                  textOutput("ex6_trial_count", inline = TRUE),
+                  actionButton("ex6_run_100", "Ask Friends 100 Times", class = "btn-primary", style = "margin-right: 10px;"),
+                  actionButton("ex6_run_10000", "Ask Friends 10,000 Times", class = "btn-success"),
 
                   uiOutput("ex6_trial_note"),
-                  plotOutput("ex6_convergence_chart", height = "200px"),
 
                   fluidRow(
                     column(6,
@@ -298,36 +292,11 @@ server <- function(input, output, session) {
   random_state <- reactiveVal(list(metal = "gold", f1 = "gold", f2 = "gold"))
   revelation_shown <- reactiveVal(FALSE)
 
-  # Trial mode results (cumulative)
+  # Trial mode results
   trial_results <- reactiveVal(NULL)
-  trial_history <- reactiveVal(list())  # Stores history for convergence chart
   decomposed_exp <- reactiveVal(FALSE)
   decomposed_trial <- reactiveVal(FALSE)
   simplified_exp <- reactiveVal(FALSE)
-
-  # Grid states for expectation mode (reactive to keep them consistent across friend grids and combined grid)
-  # This generates fresh grids whenever r, s, or simplified_exp changes
-  expectation_grids <- reactive({
-    r <- input$ex6_r
-    s <- input$ex6_s
-    ordered <- simplified_exp()
-
-    # Generate Friend 1's answers for each of 100 boxes
-    n_f1_correct <- round(r * 100)
-    f1_cells <- c(rep(TRUE, n_f1_correct), rep(FALSE, 100 - n_f1_correct))
-    if (!ordered) {
-      f1_cells <- sample(f1_cells)
-    }
-
-    # Generate Friend 2's answers for each of 100 boxes
-    n_f2_correct <- round(s * 100)
-    f2_cells <- c(rep(TRUE, n_f2_correct), rep(FALSE, 100 - n_f2_correct))
-    if (!ordered) {
-      f2_cells <- sample(f2_cells)
-    }
-
-    list(f1_cells = f1_cells, f2_cells = f2_cells)
-  })
 
   observeEvent(input$ex6_generate, {
     r <- input$ex6_r
@@ -352,72 +321,25 @@ server <- function(input, output, session) {
   })
 
   # Run 100 trials
-  # Run 100 more trials (cumulative)
   observeEvent(input$ex6_run_100, {
     r <- input$ex6_r
     s <- input$ex6_s
 
-    # Get current results or initialize
-    current <- trial_results()
-    if (is.null(current)) {
-      total_n <- 0
-      total_f1_correct <- 0
-      total_f2_correct <- 0
-      history <- list()
-    } else {
-      total_n <- current$total_n
-      total_f1_correct <- current$total_f1_correct
-      total_f2_correct <- current$total_f2_correct
-      history <- trial_history()
-    }
+    f1_correct <- sum(runif(100) < r)
+    f2_correct <- sum(runif(100) < s)
 
-    # Don't exceed 10,000 trials
-    if (total_n >= 10000) return()
-
-    # Run 100 more trials
-    new_f1_trials <- runif(100) < r
-    new_f2_trials <- runif(100) < s
-
-    # Update cumulative totals
-    total_n <- total_n + 100
-    total_f1_correct <- total_f1_correct + sum(new_f1_trials)
-    total_f2_correct <- total_f2_correct + sum(new_f2_trials)
-
-    # Calculate current proportions
-    f1_proportion <- total_f1_correct / total_n
-    f2_proportion <- total_f2_correct / total_n
-
-    # Generate 100 cells based on cumulative proportions
-    f1_cells <- sample(c(TRUE, FALSE), 100, replace = TRUE, prob = c(f1_proportion, 1 - f1_proportion))
-    f2_cells <- sample(c(TRUE, FALSE), 100, replace = TRUE, prob = c(f2_proportion, 1 - f2_proportion))
-
-    # Store history point
-    history[[length(history) + 1]] <- list(
-      n = total_n,
-      f1_prop = f1_proportion,
-      f2_prop = f2_proportion,
-      both_correct = sum(f1_cells & f2_cells),
-      f1c_f2w = sum(f1_cells & !f2_cells),
-      f1w_f2c = sum(!f1_cells & f2_cells),
-      both_wrong = sum(!f1_cells & !f2_cells)
-    )
-
-    trial_results(list(
-      f1 = round(f1_proportion * 100),
-      f2 = round(f2_proportion * 100),
-      total_n = total_n,
-      total_f1_correct = total_f1_correct,
-      total_f2_correct = total_f2_correct,
-      f1_cells = f1_cells,
-      f2_cells = f2_cells
-    ))
-    trial_history(history)
+    trial_results(list(f1 = f1_correct, f2 = f2_correct, n = 100))
   })
 
-  # Reset trials
-  observeEvent(input$ex6_reset_trials, {
-    trial_results(NULL)
-    trial_history(list())
+  # Run 10,000 trials
+  observeEvent(input$ex6_run_10000, {
+    r <- input$ex6_r
+    s <- input$ex6_s
+
+    f1_correct <- sum(runif(10000) < r)
+    f2_correct <- sum(runif(10000) < s)
+
+    trial_results(list(f1 = round(f1_correct/100), f2 = round(f2_correct/100), n = 10000))
   })
 
   observeEvent(input$ex6_toggle_decompose_exp, {
@@ -430,15 +352,6 @@ server <- function(input, output, session) {
 
   observeEvent(input$ex6_simplify_exp, {
     simplified_exp(!simplified_exp())
-  })
-
-  # Update simplify button label
-  observe({
-    if (simplified_exp()) {
-      shinyjs::html("ex6_simplify_exp", "Scatter Cells")
-    } else {
-      shinyjs::html("ex6_simplify_exp", "Simplify (Order Cells)")
-    }
   })
 
   # Mode switching
@@ -537,38 +450,16 @@ server <- function(input, output, session) {
          cex = 1.1, font = 2, xpd = TRUE)
   }
 
-  # Helper function to draw grid from actual cell states
-  draw_grid_from_cells <- function(correct_cells, correct_color, incorrect_color, title = "") {
-    n_correct <- sum(correct_cells)
-    n_incorrect <- 100 - n_correct
-
-    par(mar = c(1, 1, 2, 1))
-    plot(NULL, xlim = c(0, 10), ylim = c(0, 10),
-         xlab = "", ylab = "", axes = FALSE, asp = 1, main = title)
-
-    count <- 1
-    for (row in 0:9) {
-      for (col in 0:9) {
-        color <- if (correct_cells[count]) correct_color else incorrect_color
-        rect(col, row, col + 1, row + 1, col = color, border = "grey30", lwd = 0.5)
-        count <- count + 1
-      }
-    }
-
-    text(5, -0.8, sprintf("%d correct, %d incorrect", n_correct, n_incorrect),
-         cex = 1.1, font = 2, xpd = TRUE)
-  }
-
   # Expectation Mode: Friend 1
   output$ex6_known_friend1_exp <- renderPlot({
+    r <- input$ex6_r
     true_metal <- input$ex6_true_metal
-    grids <- expectation_grids()
-    f1_cells <- grids$f1_cells
+    ordered <- simplified_exp()
 
     if (true_metal == "gold") {
-      draw_grid_from_cells(f1_cells, "#d4af37", "#808080", "Friend 1 says 'Gold' vs 'Lead'")
+      draw_grid(r, "#d4af37", "#808080", "Friend 1 says 'Gold' vs 'Lead'", ordered)
     } else {
-      draw_grid_from_cells(f1_cells, "#808080", "#d4af37", "Friend 1 says 'Lead' vs 'Gold'")
+      draw_grid(r, "#808080", "#d4af37", "Friend 1 says 'Lead' vs 'Gold'", ordered)
     }
   })
 
@@ -589,14 +480,14 @@ server <- function(input, output, session) {
 
   # Expectation Mode: Friend 2
   output$ex6_known_friend2_exp <- renderPlot({
+    s <- input$ex6_s
     true_metal <- input$ex6_true_metal
-    grids <- expectation_grids()
-    f2_cells <- grids$f2_cells
+    ordered <- simplified_exp()
 
     if (true_metal == "gold") {
-      draw_grid_from_cells(f2_cells, "#d4af37", "#808080", "Friend 2 says 'Gold' vs 'Lead'")
+      draw_grid(s, "#d4af37", "#808080", "Friend 2 says 'Gold' vs 'Lead'", ordered)
     } else {
-      draw_grid_from_cells(f2_cells, "#808080", "#d4af37", "Friend 2 says 'Lead' vs 'Gold'")
+      draw_grid(s, "#808080", "#d4af37", "Friend 2 says 'Lead' vs 'Gold'", ordered)
     }
   })
 
@@ -624,63 +515,15 @@ server <- function(input, output, session) {
       return()
     }
 
+    r <- input$ex6_r
     true_metal <- input$ex6_true_metal
-    f1_correct_cells <- res$f1_cells
+    prob <- res$f1 / 100
 
     if (true_metal == "gold") {
-      draw_grid_from_cells(f1_correct_cells, "#d4af37", "#808080", "Friend 1 says 'Gold' vs 'Lead'")
+      draw_grid(prob, "#d4af37", "#808080", "Friend 1 says 'Gold' vs 'Lead'")
     } else {
-      draw_grid_from_cells(f1_correct_cells, "#808080", "#d4af37", "Friend 1 says 'Lead' vs 'Gold'")
+      draw_grid(prob, "#808080", "#d4af37", "Friend 1 says 'Lead' vs 'Gold'")
     }
-  })
-
-  output$ex6_trial_count <- renderText({
-    res <- trial_results()
-    if (is.null(res)) {
-      return("Total trials: 0 (Click 'Ask Friends 100 More Times' to begin)")
-    }
-    sprintf("Total trials: %d / 10,000", res$total_n)
-  })
-
-  output$ex6_convergence_chart <- renderPlot({
-    history <- trial_history()
-    if (length(history) == 0) return()
-
-    r <- input$ex6_r
-    s <- input$ex6_s
-
-    # Expected values
-    exp_both_correct <- (r * s) * 100
-    exp_f1c_f2w <- (r * (1-s)) * 100
-    exp_f1w_f2c <- ((1-r) * s) * 100
-    exp_both_wrong <- ((1-r) * (1-s)) * 100
-
-    # Extract history
-    ns <- sapply(history, function(h) h$n)
-    both_correct <- sapply(history, function(h) h$both_correct)
-    f1c_f2w <- sapply(history, function(h) h$f1c_f2w)
-    f1w_f2c <- sapply(history, function(h) h$f1w_f2c)
-    both_wrong <- sapply(history, function(h) h$both_wrong)
-
-    par(mar = c(3, 4, 2, 1))
-    plot(NULL, xlim = c(0, max(10000, max(ns))), ylim = c(0, 100),
-         xlab = "Number of Trials", ylab = "Count (per 100)", main = "Convergence to Expected Values")
-
-    # Expected lines
-    abline(h = exp_both_correct, col = "#90EE90", lwd = 2, lty = 2)
-    abline(h = exp_f1c_f2w, col = "#FFE4B5", lwd = 2, lty = 2)
-    abline(h = exp_f1w_f2c, col = "#FFD700", lwd = 2, lty = 2)
-    abline(h = exp_both_wrong, col = "#FFB6C1", lwd = 2, lty = 2)
-
-    # Actual values
-    lines(ns, both_correct, col = "#008000", lwd = 2, type = "b", pch = 19)
-    lines(ns, f1c_f2w, col = "#FF8C00", lwd = 2, type = "b", pch = 19)
-    lines(ns, f1w_f2c, col = "#DAA520", lwd = 2, type = "b", pch = 19)
-    lines(ns, both_wrong, col = "#FF1493", lwd = 2, type = "b", pch = 19)
-
-    legend("right", legend = c("Both Correct", "F1✓ F2✗", "F1✗ F2✓", "Both Wrong"),
-           col = c("#008000", "#FF8C00", "#DAA520", "#FF1493"),
-           lwd = 2, pch = 19, cex = 0.8)
   })
 
   output$ex6_known_friend1_desc_trial <- renderUI({
@@ -692,11 +535,11 @@ server <- function(input, output, session) {
     n_incorrect <- 100 - n_correct
 
     if (true_metal == "gold") {
-      p(sprintf("After %d trials: Friend 1 correctly said 'gold' %d%% of the time.",
-                res$total_n, n_correct), style = "font-size: 0.95em;")
+      p(sprintf("Trial result: Friend 1 correctly said 'gold' %d times and incorrectly said 'lead' %d times.",
+                n_correct, n_incorrect), style = "font-size: 0.95em;")
     } else {
-      p(sprintf("After %d trials: Friend 1 correctly said 'lead' %d%% of the time.",
-                res$total_n, n_correct), style = "font-size: 0.95em;")
+      p(sprintf("Trial result: Friend 1 correctly said 'lead' %d times and incorrectly said 'gold' %d times.",
+                n_correct, n_incorrect), style = "font-size: 0.95em;")
     }
   })
 
@@ -709,13 +552,14 @@ server <- function(input, output, session) {
       return()
     }
 
+    s <- input$ex6_s
     true_metal <- input$ex6_true_metal
-    f2_correct_cells <- res$f2_cells
+    prob <- res$f2 / 100
 
     if (true_metal == "gold") {
-      draw_grid_from_cells(f2_correct_cells, "#d4af37", "#808080", "Friend 2 says 'Gold' vs 'Lead'")
+      draw_grid(prob, "#d4af37", "#808080", "Friend 2 says 'Gold' vs 'Lead'")
     } else {
-      draw_grid_from_cells(f2_correct_cells, "#808080", "#d4af37", "Friend 2 says 'Lead' vs 'Gold'")
+      draw_grid(prob, "#808080", "#d4af37", "Friend 2 says 'Lead' vs 'Gold'")
     }
   })
 
@@ -728,11 +572,11 @@ server <- function(input, output, session) {
     n_incorrect <- 100 - n_correct
 
     if (true_metal == "gold") {
-      p(sprintf("After %d trials: Friend 2 correctly said 'gold' %d%% of the time.",
-                res$total_n, n_correct), style = "font-size: 0.95em;")
+      p(sprintf("Trial result: Friend 2 correctly said 'gold' %d times and incorrectly said 'lead' %d times.",
+                n_correct, n_incorrect), style = "font-size: 0.95em;")
     } else {
-      p(sprintf("After %d trials: Friend 2 correctly said 'lead' %d%% of the time.",
-                res$total_n, n_correct), style = "font-size: 0.95em;")
+      p(sprintf("Trial result: Friend 2 correctly said 'lead' %d times and incorrectly said 'gold' %d times.",
+                n_correct, n_incorrect), style = "font-size: 0.95em;")
     }
   })
 
@@ -786,49 +630,50 @@ server <- function(input, output, session) {
     }
   })
 
-  # Composed grid (expectation) - shows actual cell-by-cell comparison
+  # Composed grid (expectation) - shows 2D intersection
   output$ex6_known_combined_composed_exp <- renderPlot({
-    grids <- expectation_grids()
-    f1_correct_cells <- grids$f1_cells
-    f2_correct_cells <- grids$f2_cells
+    r <- input$ex6_r
+    s <- input$ex6_s
 
-    # Create combined grid
-    par(mar = c(3, 1, 3, 1))
+    # Calculate number of cells for each dimension
+    n_f1_correct <- round(r * 10)
+    n_f2_correct <- round(s * 10)
+
+    # Create a 10x10 grid where rows = Friend 1, cols = Friend 2
+    par(mar = c(5, 5, 3, 1))
     plot(NULL, xlim = c(0, 10), ylim = c(0, 10),
          xlab = "", ylab = "", axes = FALSE, asp = 1,
-         main = "All Possible Outcomes Combined")
+         main = "All Possible Outcomes Combined (2D View)")
 
-    # For each cell, check what both friends said
-    count <- 1
+    # Add axis labels
+    text(-1.5, 5, "Friend 1", srt = 90, cex = 1.2, font = 2, xpd = TRUE)
+    text(5, -1.5, "Friend 2", cex = 1.2, font = 2, xpd = TRUE)
+
+    # Draw grid with colors based on both friends' correctness
     for (row in 0:9) {
       for (col in 0:9) {
-        f1_correct <- f1_correct_cells[count]
-        f2_correct <- f2_correct_cells[count]
+        f1_correct <- row < n_f1_correct
+        f2_correct <- col < n_f2_correct
 
-        # Determine color based on both friends' answers for THIS cell
+        # Determine color based on both
         color <- if (f1_correct && f2_correct) "#90EE90"      # Both correct
                  else if (f1_correct && !f2_correct) "#FFE4B5" # F1 correct, F2 wrong
                  else if (!f1_correct && f2_correct) "#FFD700" # F1 wrong, F2 correct
                  else "#FFB6C1"                                # Both wrong
 
         rect(col, row, col + 1, row + 1, col = color, border = "grey30", lwd = 0.5)
-        count <- count + 1
       }
     }
 
-    # Calculate actual counts for legend
-    n_both_correct <- sum(f1_correct_cells & f2_correct_cells)
-    n_f1c_f2w <- sum(f1_correct_cells & !f2_correct_cells)
-    n_f1w_f2c <- sum(!f1_correct_cells & f2_correct_cells)
-    n_both_wrong <- sum(!f1_correct_cells & !f2_correct_cells)
+    # Add labels on axes
+    text(-0.5, n_f1_correct - 0.5, paste0(n_f1_correct*10, "% ✓"), cex = 0.9, xpd = TRUE, font = 2)
+    text(-0.5, n_f1_correct + (10 - n_f1_correct)/2 - 0.5, paste0((10-n_f1_correct)*10, "% ✗"), cex = 0.9, xpd = TRUE, font = 2)
+    text(n_f2_correct - 0.5, -0.5, paste0(n_f2_correct*10, "% ✓"), cex = 0.9, xpd = TRUE, font = 2)
+    text(n_f2_correct + (10 - n_f2_correct)/2 - 0.5, -0.5, paste0((10-n_f2_correct)*10, "% ✗"), cex = 0.9, xpd = TRUE, font = 2)
 
-    # Legend with actual counts
-    legend("bottom", horiz = TRUE,
-           legend = c(sprintf("Both Correct (%d)", n_both_correct),
-                     sprintf("F1✓ F2✗ (%d)", n_f1c_f2w),
-                     sprintf("F1✗ F2✓ (%d)", n_f1w_f2c),
-                     sprintf("Both Wrong (%d)", n_both_wrong)),
-           fill = c("#90EE90", "#FFE4B5", "#FFD700", "#FFB6C1"), cex = 0.9, xpd = TRUE, inset = c(0, -0.15))
+    # Legend
+    legend("bottom", horiz = TRUE, legend = c("Both Correct", "F1✓ F2✗", "F1✗ F2✓", "Both Wrong"),
+           fill = c("#90EE90", "#FFE4B5", "#FFD700", "#FFB6C1"), cex = 0.9, xpd = TRUE, inset = c(0, -0.25))
   })
 
   # Decomposed grid (expectation)
@@ -909,7 +754,7 @@ server <- function(input, output, session) {
     text(5, -1, sprintf("%d/100", n_both_wrong), cex = 1.2, font = 2, xpd = TRUE)
   })
 
-  # Composed grid (trial) - shows actual cell-by-cell comparison
+  # Composed grid (trial)
   output$ex6_known_combined_composed_trial <- renderPlot({
     res <- trial_results()
     if (is.null(res)) {
@@ -918,46 +763,41 @@ server <- function(input, output, session) {
       return()
     }
 
-    # Get cell-by-cell results
-    f1_correct_cells <- res$f1_cells
-    f2_correct_cells <- res$f2_cells
+    r_actual <- res$f1 / 100
+    s_actual <- res$f2 / 100
 
-    # Create combined grid
+    both_correct <- r_actual * s_actual
+    f1_correct_f2_wrong <- r_actual * (1 - s_actual)
+    f1_wrong_f2_correct <- (1 - r_actual) * s_actual
+    both_wrong <- (1 - r_actual) * (1 - s_actual)
+
+    n_both_correct <- round(both_correct * 100)
+    n_f1c_f2w <- round(f1_correct_f2_wrong * 100)
+    n_f1w_f2c <- round(f1_wrong_f2_correct * 100)
+    n_both_wrong <- round(both_wrong * 100)
+
     par(mar = c(3, 1, 3, 1))
     plot(NULL, xlim = c(0, 10), ylim = c(0, 10),
-         xlab = "", ylab = "", axes = FALSE, asp = 1,
-         main = "All Possible Outcomes Combined")
+         xlab = "", ylab = "", axes = FALSE, asp = 1, main = "All Possible Outcomes Combined")
 
-    # For each cell, check what both friends said
+    # Assign colors to each of 100 cells and shuffle
+    colors <- c(
+      rep("#90EE90", n_both_correct),
+      rep("#FFE4B5", n_f1c_f2w),
+      rep("#FFD700", n_f1w_f2c),
+      rep("#FFB6C1", n_both_wrong)
+    )
+    colors <- sample(colors)
+
     count <- 1
     for (row in 0:9) {
       for (col in 0:9) {
-        f1_correct <- f1_correct_cells[count]
-        f2_correct <- f2_correct_cells[count]
-
-        # Determine color based on both friends' answers for THIS cell
-        color <- if (f1_correct && f2_correct) "#90EE90"      # Both correct
-                 else if (f1_correct && !f2_correct) "#FFE4B5" # F1 correct, F2 wrong
-                 else if (!f1_correct && f2_correct) "#FFD700" # F1 wrong, F2 correct
-                 else "#FFB6C1"                                # Both wrong
-
-        rect(col, row, col + 1, row + 1, col = color, border = "grey30", lwd = 0.5)
+        rect(col, row, col + 1, row + 1, col = colors[count], border = "grey30", lwd = 0.5)
         count <- count + 1
       }
     }
 
-    # Calculate actual counts for legend
-    n_both_correct <- sum(f1_correct_cells & f2_correct_cells)
-    n_f1c_f2w <- sum(f1_correct_cells & !f2_correct_cells)
-    n_f1w_f2c <- sum(!f1_correct_cells & f2_correct_cells)
-    n_both_wrong <- sum(!f1_correct_cells & !f2_correct_cells)
-
-    # Legend with actual counts
-    legend("bottom", horiz = TRUE,
-           legend = c(sprintf("Both Correct (%d)", n_both_correct),
-                     sprintf("F1✓ F2✗ (%d)", n_f1c_f2w),
-                     sprintf("F1✗ F2✓ (%d)", n_f1w_f2c),
-                     sprintf("Both Wrong (%d)", n_both_wrong)),
+    legend("bottom", horiz = TRUE, legend = c("Both Correct", "F1✓ F2✗", "F1✗ F2✓", "Both Wrong"),
            fill = c("#90EE90", "#FFE4B5", "#FFD700", "#FFB6C1"), cex = 0.9, xpd = TRUE, inset = c(0, -0.15))
   })
 
@@ -1049,78 +889,35 @@ server <- function(input, output, session) {
   output$ex6_known_combined_desc_exp <- renderUI({
     r <- input$ex6_r
     s <- input$ex6_s
-    ordered <- simplified_exp()
-    grids <- expectation_grids()
-    f1_cells <- grids$f1_cells
-    f2_cells <- grids$f2_cells
-
-    # Expected values (formulas)
-    exp_both_correct <- r * s
-    exp_f1c_f2w <- r * (1 - s)
-    exp_f1w_f2c <- (1 - r) * s
-    exp_both_wrong <- (1 - r) * (1 - s)
-
-    # Actual generated values
-    act_both_correct <- sum(f1_cells & f2_cells)
-    act_f1c_f2w <- sum(f1_cells & !f2_cells)
-    act_f1w_f2c <- sum(!f1_cells & f2_cells)
-    act_both_wrong <- sum(!f1_cells & !f2_cells)
 
     both_correct <- r * s
     both_wrong <- (1 - r) * (1 - s)
     total_agree <- both_correct + both_wrong
     prob_correct_given_agree <- both_correct / total_agree
 
+    n_both_correct <- round(both_correct * 100)
+    n_both_wrong <- round(both_wrong * 100)
     n_total_agree <- round(total_agree * 100)
 
     div(
-      h5("Expected vs. Actual Outcomes:"),
-      tags$table(style = "width: 100%; margin: 15px 0; border-collapse: collapse;",
-        tags$tr(
-          tags$th("Scenario", style = "text-align: left; padding: 8px; border-bottom: 2px solid #333;"),
-          tags$th("Formula (Expected)", style = "text-align: center; padding: 8px; border-bottom: 2px solid #333;"),
-          tags$th("Actual Count", style = "text-align: center; padding: 8px; border-bottom: 2px solid #333;")
-        ),
-        tags$tr(style = "background-color: #90EE90;",
-          tags$td("Both Correct", style = "padding: 8px;"),
-          tags$td(withMathJax(sprintf("$$r \\times s = %.2f \\times %.2f = %.4f$$ (≈%.0f)", r, s, exp_both_correct, exp_both_correct * 100)),
-                  style = "text-align: center; padding: 8px;"),
-          tags$td(strong(sprintf("%d", act_both_correct)), style = "text-align: center; padding: 8px; font-size: 1.2em;")
-        ),
-        tags$tr(style = "background-color: #FFE4B5;",
-          tags$td("F1✓ F2✗", style = "padding: 8px;"),
-          tags$td(withMathJax(sprintf("$$r \\times (1-s) = %.2f \\times %.2f = %.4f$$ (≈%.0f)", r, 1-s, exp_f1c_f2w, exp_f1c_f2w * 100)),
-                  style = "text-align: center; padding: 8px;"),
-          tags$td(strong(sprintf("%d", act_f1c_f2w)), style = "text-align: center; padding: 8px; font-size: 1.2em;")
-        ),
-        tags$tr(style = "background-color: #FFD700;",
-          tags$td("F1✗ F2✓", style = "padding: 8px;"),
-          tags$td(withMathJax(sprintf("$$(1-r) \\times s = %.2f \\times %.2f = %.4f$$ (≈%.0f)", 1-r, s, exp_f1w_f2c, exp_f1w_f2c * 100)),
-                  style = "text-align: center; padding: 8px;"),
-          tags$td(strong(sprintf("%d", act_f1w_f2c)), style = "text-align: center; padding: 8px; font-size: 1.2em;")
-        ),
-        tags$tr(style = "background-color: #FFB6C1;",
-          tags$td("Both Wrong", style = "padding: 8px;"),
-          tags$td(withMathJax(sprintf("$$(1-r) \\times (1-s) = %.2f \\times %.2f = %.4f$$ (≈%.0f)", 1-r, 1-s, exp_both_wrong, exp_both_wrong * 100)),
-                  style = "text-align: center; padding: 8px;"),
-          tags$td(strong(sprintf("%d", act_both_wrong)), style = "text-align: center; padding: 8px; font-size: 1.2em;")
-        )
+      p(class = "key-insight",
+        strong("Key Insight: "),
+        sprintf("When both friends agree (which happens %d times out of 100), they are both correct %d times and both wrong %d times.",
+                n_total_agree, n_both_correct, n_both_wrong)
       ),
-      if (!ordered) {
-        p(class = "key-insight",
-          strong("Note: "), "The cells are scattered randomly. Click 'Simplify (Order Cells)' to see them organized. ",
-          "Notice how the actual counts change when you reorder - this happens because the friends judge ",
-          strong("independently"), " so their correct/incorrect answers don't line up perfectly!")
-      } else {
-        p(class = "key-insight",
-          strong("Note: "), "The cells are now ordered. Because the friends are independent, when their correct answers align (both in the first positions), we get more 'Both Correct' outcomes than when scattered.")
-      },
       div(class = "formula-box",
           p(strong("Probability both correct when they agree:"),
             " (Peirce's formula)"),
-          p(withMathJax(sprintf("$$\\frac{r \\times s}{r \\times s + (1-r) \\times (1-s)} = \\frac{%.0f}{%d} = %.4f \\text{ (or %.2f\\%%)}$$",
-                                exp_both_correct * 100, n_total_agree,
+          p(withMathJax(sprintf("$$\\frac{%d}{%d} = %.4f \\text{ (or %.2f\\%%)}$$",
+                                n_both_correct, n_total_agree,
                                 prob_correct_given_agree, prob_correct_given_agree * 100)))
+      ),
+      p(style = "font-size: 0.9em; font-style: italic;",
+        "Note: In this case, the ",
+        span(class = "hl-antecedent", "antecedents"),
+        " are the facts that each inference rule gave a particular result, and the ",
+        span(class = "hl-consequent", "consequent"),
+        " is that that result is correct."
       )
     )
   })
@@ -1129,72 +926,29 @@ server <- function(input, output, session) {
     res <- trial_results()
     if (is.null(res)) return(NULL)
 
-    r <- input$ex6_r
-    s <- input$ex6_s
-    f1_cells <- res$f1_cells
-    f2_cells <- res$f2_cells
-
     r_actual <- res$f1 / 100
     s_actual <- res$f2 / 100
-
-    # Expected values
-    exp_both_correct <- r * s
-    exp_f1c_f2w <- r * (1 - s)
-    exp_f1w_f2c <- (1 - r) * s
-    exp_both_wrong <- (1 - r) * (1 - s)
-
-    # Actual values from trials
-    act_both_correct <- sum(f1_cells & f2_cells)
-    act_f1c_f2w <- sum(f1_cells & !f2_cells)
-    act_f1w_f2c <- sum(!f1_cells & f2_cells)
-    act_both_wrong <- sum(!f1_cells & !f2_cells)
 
     both_correct <- r_actual * s_actual
     both_wrong <- (1 - r_actual) * (1 - s_actual)
     total_agree <- both_correct + both_wrong
     prob_correct_given_agree <- both_correct / total_agree
+
+    n_both_correct <- round(both_correct * 100)
+    n_both_wrong <- round(both_wrong * 100)
     n_total_agree <- round(total_agree * 100)
 
     div(
-      h5(sprintf("After %d Trials - Expected vs. Actual:", res$total_n)),
-      tags$table(style = "width: 100%; margin: 15px 0; border-collapse: collapse;",
-        tags$tr(
-          tags$th("Scenario", style = "text-align: left; padding: 8px; border-bottom: 2px solid #333;"),
-          tags$th("Formula (Expected)", style = "text-align: center; padding: 8px; border-bottom: 2px solid #333;"),
-          tags$th("Actual Count", style = "text-align: center; padding: 8px; border-bottom: 2px solid #333;")
-        ),
-        tags$tr(style = "background-color: #90EE90;",
-          tags$td("Both Correct", style = "padding: 8px;"),
-          tags$td(withMathJax(sprintf("$$r \\times s = %.2f \\times %.2f = %.4f$$ (≈%.0f)", r, s, exp_both_correct, exp_both_correct * 100)),
-                  style = "text-align: center; padding: 8px;"),
-          tags$td(strong(sprintf("%d", act_both_correct)), style = "text-align: center; padding: 8px; font-size: 1.2em;")
-        ),
-        tags$tr(style = "background-color: #FFE4B5;",
-          tags$td("F1✓ F2✗", style = "padding: 8px;"),
-          tags$td(withMathJax(sprintf("$$r \\times (1-s) = %.2f \\times %.2f = %.4f$$ (≈%.0f)", r, 1-s, exp_f1c_f2w, exp_f1c_f2w * 100)),
-                  style = "text-align: center; padding: 8px;"),
-          tags$td(strong(sprintf("%d", act_f1c_f2w)), style = "text-align: center; padding: 8px; font-size: 1.2em;")
-        ),
-        tags$tr(style = "background-color: #FFD700;",
-          tags$td("F1✗ F2✓", style = "padding: 8px;"),
-          tags$td(withMathJax(sprintf("$$(1-r) \\times s = %.2f \\times %.2f = %.4f$$ (≈%.0f)", 1-r, s, exp_f1w_f2c, exp_f1w_f2c * 100)),
-                  style = "text-align: center; padding: 8px;"),
-          tags$td(strong(sprintf("%d", act_f1w_f2c)), style = "text-align: center; padding: 8px; font-size: 1.2em;")
-        ),
-        tags$tr(style = "background-color: #FFB6C1;",
-          tags$td("Both Wrong", style = "padding: 8px;"),
-          tags$td(withMathJax(sprintf("$$(1-r) \\times (1-s) = %.2f \\times %.2f = %.4f$$ (≈%.0f)", 1-r, 1-s, exp_both_wrong, exp_both_wrong * 100)),
-                  style = "text-align: center; padding: 8px;"),
-          tags$td(strong(sprintf("%d", act_both_wrong)), style = "text-align: center; padding: 8px; font-size: 1.2em;")
-        )
-      ),
       p(class = "key-insight",
-        sprintf("As you run more trials, the actual counts converge toward the expected values. After %d trials, Friend 1 is %.1f%% accurate (expected %.0f%%) and Friend 2 is %.1f%% accurate (expected %.0f%%).",
-                res$total_n, r_actual * 100, r * 100, s_actual * 100, s * 100)),
+        strong("Trial Result: "),
+        sprintf("When both friends agree (which happened %d times out of 100), they were both correct %d times and both wrong %d times.",
+                n_total_agree, n_both_correct, n_both_wrong)
+      ),
       div(class = "formula-box",
-          p(strong("Probability both correct when they agree:")),
-          p(withMathJax(sprintf("$$\\frac{r \\times s}{r \\times s + (1-r) \\times (1-s)} = \\frac{%.0f}{%d} = %.4f \\text{ (or %.2f\\%%)}$$",
-                                exp_both_correct * 100, n_total_agree,
+          p(strong("Probability both correct when they agree:"),
+            " (Peirce's formula)"),
+          p(withMathJax(sprintf("$$\\frac{%d}{%d} = %.4f \\text{ (or %.2f\\%%)}$$",
+                                n_both_correct, n_total_agree,
                                 prob_correct_given_agree, prob_correct_given_agree * 100)))
       )
     )
@@ -1204,64 +958,19 @@ server <- function(input, output, session) {
   output$ex6_agreement_formula <- renderUI({
     r <- input$ex6_r
     s <- input$ex6_s
-    mode <- input$ex6_answer_mode
 
-    # Determine scenario based on mode
-    if (mode == "random") {
-      state <- random_state()
-      f1_says <- state$f1
-      f2_says <- state$f2
-    } else if (mode == "both_gold") {
-      f1_says <- "gold"
-      f2_says <- "gold"
-    } else if (mode == "both_lead") {
-      f1_says <- "lead"
-      f2_says <- "lead"
-    } else {  # disagree
-      f1_says <- "gold"
-      f2_says <- "lead"
-    }
+    both_correct <- r * s
+    both_wrong <- (1 - r) * (1 - s)
+    total_agree <- both_correct + both_wrong
+    prob_correct_given_agree <- both_correct / total_agree
 
-    agree <- (f1_says == f2_says)
-
-    if (agree) {
-      # Agreement case
-      both_correct <- r * s
-      both_wrong <- (1 - r) * (1 - s)
-      total_agree <- both_correct + both_wrong
-      prob_correct_given_agree <- both_correct / total_agree
-
-      # Determine what they both said
-      both_say <- if (f1_says == "gold") "'Gold'" else "'Lead'"
-
-      div(class = "formula-box",
-          p(strong(sprintf("Probability both correct when they both say %s:", both_say))),
-          p(withMathJax(sprintf("$$\\frac{%.2f \\times %.2f}{%.2f \\times %.2f + %.2f \\times %.2f}$$",
-                                r, s, r, s, 1-r, 1-s))),
-          p(withMathJax(sprintf("$$= %.4f \\text{ (or %.2f\\%%)}$$",
-                                prob_correct_given_agree, prob_correct_given_agree * 100)))
-      )
-    } else {
-      # Disagreement case
-      f1_correct_f2_wrong <- r * (1 - s)
-      f1_wrong_f2_correct <- (1 - r) * s
-      total_disagree <- f1_correct_f2_wrong + f1_wrong_f2_correct
-
-      # Probability F1 is correct when they disagree
-      prob_f1_correct_given_disagree <- f1_correct_f2_wrong / total_disagree
-
-      # Determine what each friend said
-      f1_said <- if (f1_says == "gold") "'Gold'" else "'Lead'"
-      f2_said <- if (f2_says == "gold") "'Gold'" else "'Lead'"
-
-      div(class = "formula-box",
-          p(strong(sprintf("When Friend 1 says %s and Friend 2 says %s:", f1_said, f2_said))),
-          p(withMathJax(sprintf("$$P(\\text{F1 correct}) = \\frac{%.2f \\times %.2f}{%.2f \\times %.2f + %.2f \\times %.2f} = %.4f$$",
-                                r, 1-s, r, 1-s, 1-r, s, prob_f1_correct_given_disagree))),
-          p(withMathJax(sprintf("$$P(\\text{F2 correct}) = \\frac{%.2f \\times %.2f}{%.2f \\times %.2f + %.2f \\times %.2f} = %.4f$$",
-                                1-r, s, 1-r, s, r, 1-s, 1 - prob_f1_correct_given_disagree)))
-      )
-    }
+    div(class = "formula-box",
+        p(strong("Probability both correct when they agree:")),
+        p(withMathJax(sprintf("$$\\frac{%.2f \\times %.2f}{%.2f \\times %.2f + %.2f \\times %.2f}$$",
+                              r, s, r, s, 1-r, 1-s))),
+        p(withMathJax(sprintf("$$= %.4f \\text{ (or %.2f\\%%)}$$",
+                              prob_correct_given_agree, prob_correct_given_agree * 100)))
+    )
   })
 
   # Unknown Mode: Friend answers display
@@ -1465,73 +1174,56 @@ server <- function(input, output, session) {
       f2_says <- "lead"
     }
 
-    # Use same grid generation as expectation mode
-    grids <- expectation_grids()
-    f1_correct_cells <- grids$f1_cells
-    f2_correct_cells <- grids$f2_cells
+    # Calculate probabilities using Peirce's approach
+    both_correct <- r * s
+    f1_correct_f2_wrong <- r * (1 - s)
+    f1_wrong_f2_correct <- (1 - r) * s
+    both_wrong <- (1 - r) * (1 - s)
 
-    # Create combined grid
-    par(mar = c(3, 1, 3, 1))
-    plot(NULL, xlim = c(0, 10), ylim = c(0, 10),
-         xlab = "", ylab = "", axes = FALSE, asp = 1,
-         main = "All Possible Outcomes Combined")
-
-    # Determine which scenarios match what the friends said
-    agree <- (f1_says == f2_says)
-
-    # For each cell, determine if it matches the scenario
-    count <- 1
-    for (row in 0:9) {
-      for (col in 0:9) {
-        f1_correct <- f1_correct_cells[count]
-        f2_correct <- f2_correct_cells[count]
-
-        # Determine scenario
-        if (f1_correct && f2_correct) {
-          color <- "#90EE90"  # Both correct
-          alpha <- 1.0
-        } else if (f1_correct && !f2_correct) {
-          color <- "#FFE4B5"  # F1 correct, F2 wrong
-          alpha <- 1.0
-        } else if (!f1_correct && f2_correct) {
-          color <- "#FFD700"  # F1 wrong, F2 correct
-          alpha <- 1.0
-        } else {
-          color <- "#FFB6C1"  # Both wrong
-          alpha <- 1.0
-        }
-
-        # Dim cells that don't match what the friends said
-        both_said_gold <- (f1_says == "gold" && f2_says == "gold")
-        both_said_lead <- (f1_says == "lead" && f2_says == "lead")
-        f1_gold_f2_lead <- (f1_says == "gold" && f2_says == "lead")
-        f1_lead_f2_gold <- (f1_says == "lead" && f2_says == "gold")
-
-        matches <- FALSE
-        if (both_said_gold && (f1_correct && f2_correct || !f1_correct && !f2_correct)) matches <- TRUE
-        if (both_said_lead && (f1_correct && f2_correct || !f1_correct && !f2_correct)) matches <- TRUE
-        if (f1_gold_f2_lead && (f1_correct && !f2_correct || !f1_correct && f2_correct)) matches <- TRUE
-        if (f1_lead_f2_gold && (f1_correct && !f2_correct || !f1_correct && f2_correct)) matches <- TRUE
-
-        # Use lighter border for non-matching cells
-        border_col <- if (matches) "grey30" else "grey90"
-        lwd_val <- if (matches) 0.8 else 0.3
-
-        # Fade non-matching cells
-        if (!matches) {
-          color <- "white"
-        }
-
-        rect(col, row, col + 1, row + 1, col = color, border = border_col, lwd = lwd_val)
-        count <- count + 1
+    # Determine which scenarios are consistent with what they said
+    if (f1_says == "gold" && f2_says == "gold") {
+      scenario_probs <- c(both_correct, both_wrong)
+      scenario_names <- c("Both Correct\n(metal is gold)", "Both Wrong\n(metal is lead)")
+      scenario_colors <- c("#90EE90", "#FFB6C1")
+    } else if (f1_says == "lead" && f2_says == "lead") {
+      scenario_probs <- c(both_correct, both_wrong)
+      scenario_names <- c("Both Correct\n(metal is lead)", "Both Wrong\n(metal is gold)")
+      scenario_colors <- c("#90EE90", "#FFB6C1")
+    } else {
+      if (f1_says == "gold" && f2_says == "lead") {
+        scenario_probs <- c(f1_correct_f2_wrong, f1_wrong_f2_correct)
+        scenario_names <- c("F1 Correct, F2 Wrong\n(metal is gold)", "F1 Wrong, F2 Correct\n(metal is lead)")
+      } else {
+        scenario_probs <- c(f1_wrong_f2_correct, f1_correct_f2_wrong)
+        scenario_names <- c("F1 Wrong, F2 Correct\n(metal is gold)", "F1 Correct, F2 Wrong\n(metal is lead)")
       }
+      scenario_colors <- c("#FFE4B5", "#FFD700")
     }
 
-    # Legend
-    legend("bottom", horiz = TRUE,
-           legend = c("Both Correct", "F1✓ F2✗", "F1✗ F2✓", "Both Wrong"),
-           fill = c("#90EE90", "#FFE4B5", "#FFD700", "#FFB6C1"),
-           cex = 0.9, xpd = TRUE, inset = c(0, -0.15))
+    n_scenarios <- length(scenario_probs)
+    n_cells <- round(scenario_probs * 100)
+
+    par(mfrow = c(1, n_scenarios), mar = c(4, 1, 3, 1))
+
+    for (i in 1:n_scenarios) {
+      plot(NULL, xlim = c(0, 10), ylim = c(0, 10),
+           xlab = "", ylab = "", axes = FALSE, asp = 1,
+           main = scenario_names[i])
+
+      count <- 1
+      for (row in 0:9) {
+        for (col in 0:9) {
+          color <- if (count <= n_cells[i]) scenario_colors[i] else "white"
+          border_col <- if (count <= n_cells[i]) "grey30" else "grey80"
+          lwd_val <- if (count <= n_cells[i]) 1 else 0.5
+          rect(col, row, col + 1, row + 1, col = color, border = border_col, lwd = lwd_val)
+          count <- count + 1
+        }
+      }
+
+      text(5, -1.5, sprintf("%d out of 100 cases", n_cells[i]),
+           cex = 1.1, font = 2, xpd = TRUE)
+    }
   })
 
   output$ex6_unknown_explanation <- renderUI({
@@ -1572,20 +1264,14 @@ server <- function(input, output, session) {
       prob_correct <- n_both_correct / total_agree
 
       agree_text <- if (f1_says == "gold") "both say 'gold'" else "both say 'lead'"
-      color1 <- "#90EE90"  # Green for both correct
-      color2 <- "#FFB6C1"  # Pink for both wrong
 
       div(
         p(class = "key-insight",
-          sprintf("Because your friends agree and %s, your scenario must be one of the ", agree_text),
-          span(style = sprintf("background-color: %s; padding: 2px 6px; border-radius: 3px; font-weight: bold;", color1), "green"),
-          " or ",
-          span(style = sprintf("background-color: %s; padding: 2px 6px; border-radius: 3px; font-weight: bold;", color2), "pink"),
-          " boxes shown above. There are only two possibilities:"
+          sprintf("When your friends agree and %s, there are only two possibilities:", agree_text)
         ),
         tags$ul(
-          tags$li(sprintf("Both are correct - %d green boxes (%d out of 100 times)", n_both_correct, n_both_correct)),
-          tags$li(sprintf("Both are wrong - %d pink boxes (%d out of 100 times)", n_both_wrong, n_both_wrong))
+          tags$li(sprintf("Both are correct (%d out of 100 times)", n_both_correct)),
+          tags$li(sprintf("Both are wrong (%d out of 100 times)", n_both_wrong))
         ),
         div(class = "formula-box",
             p(strong("Probability they're both correct when they agree:")),
@@ -1605,8 +1291,6 @@ server <- function(input, output, session) {
     } else {
       # They disagree
       total_disagree <- n_f1c_f2w + n_f1w_f2c
-      color1 <- "#FFE4B5"  # Orange for F1 correct, F2 wrong
-      color2 <- "#FFD700"  # Gold for F1 wrong, F2 correct
 
       if (f1_says == "gold") {
         prob_f1_correct <- n_f1c_f2w / total_disagree
@@ -1620,15 +1304,11 @@ server <- function(input, output, session) {
 
       div(
         p(class = "key-insight",
-          "Because your friends disagree, your scenario must be one of the ",
-          span(style = sprintf("background-color: %s; padding: 2px 6px; border-radius: 3px; font-weight: bold;", color1), "orange"),
-          " or ",
-          span(style = sprintf("background-color: %s; padding: 2px 6px; border-radius: 3px; font-weight: bold;", color2), "gold"),
-          " boxes shown above. One friend must be correct and one must be wrong. The question is: which one?"
+          "When your friends disagree, one must be correct and one must be wrong. The question is: which one?"
         ),
         tags$ul(
-          tags$li(sprintf("Friend 1 correct, Friend 2 wrong - %d orange boxes (%d out of 100 times)", n_f1c_f2w, n_f1c_f2w)),
-          tags$li(sprintf("Friend 1 wrong, Friend 2 correct - %d gold boxes (%d out of 100 times)", n_f1w_f2c, n_f1w_f2c))
+          tags$li(sprintf("Friend 1 correct, Friend 2 wrong: %d out of 100 times", n_f1c_f2w)),
+          tags$li(sprintf("Friend 1 wrong, Friend 2 correct: %d out of 100 times", n_f1w_f2c))
         ),
         p(explanation_text)
       )
