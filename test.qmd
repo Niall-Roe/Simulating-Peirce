@@ -1,0 +1,208 @@
+# Teaching Notebook: Arguments, Odds, Likelihood Ratios, and Bayes
+
+------------------------------------------------------------------------
+
+title: "Arguments, Odds, Likelihood Ratios, and Bayes" format: html execute: echo: true warning: false message: false
+
+------------------------------------------------------------------------
+
+## How to use this notebook
+
+This notebook is a *guided experiment in inference*. You should:
+
+1.  Read the prose before each code block.
+2.  Run the code.
+3.  Change the numbers.
+4.  Watch which conclusions *change* and which ones *should not*.
+
+**Rule:** identical arithmetic does *not* imply identical inference. Every section uses similar-looking numbers but embeds them in a *different probability space*.
+
+------------------------------------------------------------------------
+
+## Section 0 — The basic setup
+
+Let **E** be the claim: *A tornado occurred.*
+
+We consider three *independent arguments* that sometimes appear and, when they do, speak in favor of E:
+
+-   Argument A
+-   Argument B
+-   Argument C
+
+When these arguments appear, their long‑run reliabilities are:
+
+``` r
+p <- c(A = 0.7, B = 0.8, C = 0.05)
+p
+```
+
+These numbers mean:
+
+> *When an argument of this kind appears, how often does it lead to the truth?*
+
+They do **not** yet mean: - how often tornadoes occur - how often the argument appears - how often silence occurs
+
+------------------------------------------------------------------------
+
+## Section 1 — Peirce: arguments as fallible reasons
+
+### Conceptual commitments
+
+-   We condition on arguments *having appeared*
+-   Arguments are fallible
+-   Absence of an argument is not evidence
+-   No base rate for E is assumed
+
+The probability space here is over **arguments being right or wrong**, not over tornadoes.
+
+### Step 1: Convert reliability to odds
+
+``` r
+odds <- p / (1 - p)
+odds
+```
+
+### Step 2: Take logs and add
+
+``` r
+log_odds <- log(odds)
+log_odds
+sum(log_odds)
+```
+
+### Interpretation
+
+-   The result is **unitless**
+-   It is a *net weight of reasons*
+-   Negative values favor not‑E
+-   The magnitude reflects strength, not probability
+
+⚠️ **Temptation (do not do this):**
+
+``` r
+plogis(sum(log_odds))
+```
+
+This produces a number between 0 and 1, but it has **no legitimate interpretation** here. There is no reference class over which this could be a probability.
+
+------------------------------------------------------------------------
+
+## Section 2 — Collapsing to overall method reliability
+
+Now reinterpret the situation.
+
+Suppose you ignore *which* arguments appeared and are told only:
+
+> “This entire method is correct 96% of the time.”
+
+``` r
+method_p <- 0.96
+log(method_p / (1 - method_p))
+```
+
+### Interpretation
+
+-   This yields strong confidence
+-   But all internal structure is lost
+-   Disagreement becomes unintelligible
+-   New kinds of arguments cannot be incorporated
+
+This is **not** Peirce’s aggregation, even though he discusses this quantity.
+
+------------------------------------------------------------------------
+
+## Section 3 — Likelihood ratios: arguments as detectors
+
+Now we *change the meaning* of the same numbers.
+
+Assume:
+
+-   A, B, C are signals
+-   They sometimes appear when E is true
+-   They sometimes appear when E is false
+-   Non‑occurrence is informative
+
+We now interpret the numbers as:
+
+``` r
+p_E <- p
+p_notE <- 1 - p
+
+LR <- p_E / p_notE
+LR
+sum(log(LR))
+```
+
+### New assumptions (not present before)
+
+-   A closed hypothesis space
+-   Known false‑positive rates
+-   Silence counts as evidence
+
+Arithmetic is identical to Section 1 — **inference is not**.
+
+------------------------------------------------------------------------
+
+## Section 4 — Bayesian updating: base rates enter
+
+Now assume tornadoes are rare:
+
+``` r
+prior_E <- 0.01
+prior_odds <- prior_E / (1 - prior_E)
+prior_odds
+```
+
+Update with the likelihood ratios:
+
+``` r
+posterior_odds <- prior_odds * prod(LR)
+posterior_prob <- posterior_odds / (1 + posterior_odds)
+posterior_prob
+```
+
+### Interpretation
+
+-   Base rates dominate
+-   Strong arguments may still not overcome rarity
+-   This explains the Finley effect
+
+Change `prior_E` and rerun.
+
+------------------------------------------------------------------------
+
+## Section 5 — Absence of evidence vs evidence of absence
+
+Add a test X such that:
+
+-   P(X \| E) = 0.9
+-   P(X \| not‑E) = 0.1
+
+If X does *not* occur:
+
+``` r
+log(0.1 / 0.9)
+```
+
+This penalizes E — but **only** in a detector model.
+
+In Peirce’s framework, silence carries no weight.
+
+------------------------------------------------------------------------
+
+## Section 6 — Summary table
+
+| Framework          | Probability space | Silence matters? | Prior needed? |
+|--------------------|-------------------|------------------|---------------|
+| Peirce             | Arguments         | No               | No            |
+| Method reliability | Methods           | No               | No            |
+| Likelihood ratio   | Hypotheses        | Yes              | No            |
+| Bayesian           | Hypotheses        | Yes              | Yes           |
+
+------------------------------------------------------------------------
+
+## Final moral
+
+Same numbers. Same arithmetic. Different questions.
+
+If you cannot name the reference class, you cannot name the probability.

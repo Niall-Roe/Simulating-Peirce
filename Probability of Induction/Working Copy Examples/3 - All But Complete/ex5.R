@@ -1,7 +1,8 @@
 library(shiny)
 library(shinyjs)
 
-
+#To Do:
+#Need to update the long run frequency bit to be more like ex1-4. 
 
 ui <- fluidPage(
   useShinyjs(),
